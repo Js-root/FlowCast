@@ -19,9 +19,26 @@ export default function App() {
   const [routes, setRoutes] = useState<RouteOption[]>(PRESET_ROUTES);
   const [demoModalOpen, setDemoModalOpen] = useState(false);
 
-  // Trigger scenario handler
-  const handleTriggerIncident = (newInc: Incident) => {
+  // Trigger scenario handler. opts.fake = unverified rumor: add a lone low-reliability
+  // signal, no node/route change, so the cross-validation gate keeps it yellow.
+  const handleTriggerIncident = (newInc: Incident, opts?: { fake?: boolean }) => {
     setIncidents((prev) => [newInc, ...prev]);
+
+    if (opts?.fake) {
+      const rumor: SocialSignal = {
+        id: `sig-${Date.now()}`,
+        timeAgo: 'Just now',
+        platform: 'Citizen Report',
+        handle: '@anon_forward',
+        text: `UNVERIFIED: ${newInc.title} near ${newInc.area}? Forwarded on WhatsApp, no official source yet.`,
+        sentiment: 'warning',
+        reliabilityScore: 41,
+        impactArea: newInc.area,
+      };
+      setSocialSignals((prev) => [rumor, ...prev]);
+      setActiveTab('dashboard');
+      return;
+    }
 
     // Update nodes status to severe
     setNodes((prev) =>
@@ -58,6 +75,21 @@ export default function App() {
     setActiveTab('dashboard');
   };
 
+  // Corroborate an unverified incident with a 2nd independent source -> flips it Confirmed.
+  const handleCorroborate = (inc: Incident) => {
+    const second: SocialSignal = {
+      id: `sig-${Date.now()}`,
+      timeAgo: 'Just now',
+      platform: 'X / Twitter',
+      handle: '@delhi_eyewitness',
+      text: `Confirming ${inc.title} at ${inc.area} — visible from here, traffic building up.`,
+      sentiment: 'negative',
+      reliabilityScore: 86,
+      impactArea: inc.area,
+    };
+    setSocialSignals((prev) => [second, ...prev]);
+  };
+
   return (
     <div className="bg-[#101415] text-[#e0e3e5] min-h-screen flex flex-col font-sans selection:bg-[#3a8dff] selection:text-white">
       {/* Top Bar Header */}
@@ -84,6 +116,7 @@ export default function App() {
               routes={routes}
               onOpenDemoModal={() => setDemoModalOpen(true)}
               onNavigateToRoutePlanner={() => setActiveTab('route-planner')}
+              onCorroborate={handleCorroborate}
             />
             <FeatureGrid />
           </>

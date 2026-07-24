@@ -5,7 +5,7 @@ import { Incident } from '../types';
 interface DemoSimulationModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onTriggerIncident: (newIncident: Incident) => void;
+  onTriggerIncident: (newIncident: Incident, opts?: { fake?: boolean }) => void;
 }
 
 export const DemoSimulationModal: React.FC<DemoSimulationModalProps> = ({
@@ -26,6 +26,7 @@ export const DemoSimulationModal: React.FC<DemoSimulationModalProps> = ({
     desc: string;
     lat: number;
     lng: number;
+    fake?: boolean;
   }[] = [
     {
       title: 'Monsoon Waterlogging & Pump Failure',
@@ -57,6 +58,17 @@ export const DemoSimulationModal: React.FC<DemoSimulationModalProps> = ({
       lat: 28.5672,
       lng: 77.2100,
     },
+    {
+      title: 'Viral "Road Blocked" Rumor',
+      area: 'Karol Bagh Market',
+      category: 'rally',
+      delay: 20,
+      startsIn: 14,
+      desc: 'Unconfirmed WhatsApp forward claiming a large protest is blocking Ajmal Khan Road. No official source or GPS slowdown yet — stays UNVERIFIED until a second signal corroborates.',
+      lat: 28.6512,
+      lng: 77.1907,
+      fake: true,
+    },
   ];
 
   const handleApplyScenario = () => {
@@ -65,19 +77,19 @@ export const DemoSimulationModal: React.FC<DemoSimulationModalProps> = ({
       id: `sim-${Date.now()}`,
       title: sc.title,
       area: sc.area,
-      severity: 'severe',
+      severity: sc.fake ? 'moderate' : 'severe',
       category: sc.category,
       delayMinutes: sc.delay,
       startsInMinutes: sc.startsIn,
-      confidencePercent: 98,
-      socialSource: 'LIVE DEMO SIMULATOR SIGNAL',
+      confidencePercent: sc.fake ? 44 : 98,
+      socialSource: sc.fake ? 'Unverified WhatsApp forward' : 'LIVE DEMO SIMULATOR SIGNAL',
       description: sc.desc,
       lat: sc.lat,
       lng: sc.lng,
       cascadingRoads: ['Ring Road South', 'August Kranti Marg', 'Aurobindo Marg'],
     };
 
-    onTriggerIncident(newInc);
+    onTriggerIncident(newInc, { fake: sc.fake });
     onClose();
   };
 

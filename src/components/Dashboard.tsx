@@ -34,6 +34,7 @@ interface DashboardProps {
   routes: RouteOption[];
   onOpenDemoModal: () => void;
   onNavigateToRoutePlanner: () => void;
+  onCorroborate: (inc: Incident) => void;
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({
@@ -44,6 +45,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   routes,
   onOpenDemoModal,
   onNavigateToRoutePlanner,
+  onCorroborate,
 }) => {
   const [forecastMinutes, setForecastMinutes] = useState<number>(30);
   const [selectedIncidentId, setSelectedIncidentId] = useState<string | null>('inc-1');
@@ -251,6 +253,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 <div className="text-[10px] text-[#1A1A1A]/60 font-mono border-t border-[#1A1A1A]/10 pt-2 mt-0.5">
                   Confidence: <span className="text-emerald-700 font-bold">{selectedIncident ? selectedIncident.confidencePercent : 94}%</span> ({selectedIncident?.socialSource || 'Multi-channel social feed'})
                 </div>
+                {selectedIncident && verifications[selectedIncident.id] === 'unverified' && (
+                  <button
+                    onClick={() => onCorroborate(selectedIncident)}
+                    className="mt-1 text-[10px] font-mono font-bold uppercase bg-yellow-500 text-[#1A1A1A] px-2 py-1.5 hover:bg-[#1A1A1A] hover:text-white transition-colors cursor-pointer"
+                  >
+                    ⚠ Unverified — Corroborate with 2nd source
+                  </button>
+                )}
               </div>
             </div>
 
