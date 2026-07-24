@@ -1,18 +1,18 @@
 import { Incident, TrafficNode, CameraFeed, SocialSignal, RouteOption } from '../types';
 
 export const INITIAL_NODES: TrafficNode[] = [
-  { id: 'node-cp', name: 'Connaught Place', status: 'severe', avgSpeedKmh: 14, delayMinutes: 28, lat: 28.6315, lng: 77.2167 },
-  { id: 'node-ring', name: 'Ring Road (Moti Bagh)', status: 'heavy', avgSpeedKmh: 22, delayMinutes: 18, lat: 28.5760, lng: 77.1740 },
-  { id: 'node-aiims', name: 'AIIMS Junction', status: 'severe', avgSpeedKmh: 12, delayMinutes: 34, lat: 28.5672, lng: 77.2100 },
-  { id: 'node-ashram', name: 'Ashram Chowk', status: 'heavy', avgSpeedKmh: 18, delayMinutes: 22, lat: 28.5730, lng: 77.2590 },
-  { id: 'node-dnd', name: 'DND Flyway', status: 'heavy', avgSpeedKmh: 28, delayMinutes: 18, lat: 28.5680, lng: 77.3010 },
-  { id: 'node-nh44', name: 'NH44 (Mukarba Chowk)', status: 'severe', avgSpeedKmh: 16, delayMinutes: 45, lat: 28.7370, lng: 77.1600 },
-  { id: 'node-karol', name: 'Karol Bagh', status: 'moderate', avgSpeedKmh: 31, delayMinutes: 10, lat: 28.6512, lng: 77.1907 },
-  { id: 'node-southdelhi', name: 'South Delhi (Saket)', status: 'clear', avgSpeedKmh: 42, delayMinutes: 4, lat: 28.5245, lng: 77.2066 },
-  { id: 'node-noida', name: 'Noida Sec 18', status: 'moderate', avgSpeedKmh: 36, delayMinutes: 8, lat: 28.5700, lng: 77.3210 },
-  { id: 'node-gurgaon', name: 'Gurgaon Cyber City', status: 'moderate', avgSpeedKmh: 38, delayMinutes: 12, lat: 28.4945, lng: 77.0880 },
-  { id: 'node-yamuna', name: 'Yamuna Bridge (ITO)', status: 'heavy', avgSpeedKmh: 20, delayMinutes: 24, lat: 28.6289, lng: 77.2410 },
-  { id: 'node-kashmere', name: 'Kashmere Gate ISBT', status: 'moderate', avgSpeedKmh: 29, delayMinutes: 11, lat: 28.6675, lng: 77.2281 },
+  { id: 'node-cp', name: 'Connaught Place', status: 'severe', avgSpeedKmh: 14, delayMinutes: 28, coords: { x: 48, y: 38 }, lat: 28.6315, lng: 77.2167 },
+  { id: 'node-ring', name: 'Ring Road (Moti Bagh)', status: 'heavy', avgSpeedKmh: 22, delayMinutes: 18, coords: { x: 38, y: 52 }, lat: 28.5822, lng: 77.1685 },
+  { id: 'node-aiims', name: 'AIIMS Junction', status: 'severe', avgSpeedKmh: 12, delayMinutes: 34, coords: { x: 50, y: 64 }, lat: 28.5672, lng: 77.2100 },
+  { id: 'node-ashram', name: 'Ashram Chowk', status: 'heavy', avgSpeedKmh: 18, delayMinutes: 22, coords: { x: 62, y: 68 }, lat: 28.5714, lng: 77.2625 },
+  { id: 'node-dnd', name: 'DND Flyway', status: 'heavy', avgSpeedKmh: 28, delayMinutes: 18, coords: { x: 72, y: 58 }, lat: 28.5626, lng: 77.2917 },
+  { id: 'node-nh44', name: 'NH44 (Mukarba Chowk)', status: 'severe', avgSpeedKmh: 16, delayMinutes: 45, coords: { x: 34, y: 18 }, lat: 28.7256, lng: 77.1128 },
+  { id: 'node-karol', name: 'Karol Bagh', status: 'moderate', avgSpeedKmh: 31, delayMinutes: 10, coords: { x: 40, y: 34 }, lat: 28.6475, lng: 77.1907 },
+  { id: 'node-southdelhi', name: 'South Delhi (Saket)', status: 'clear', avgSpeedKmh: 42, delayMinutes: 4, coords: { x: 50, y: 78 }, lat: 28.5244, lng: 77.2066 },
+  { id: 'node-noida', name: 'Noida Sec 18', status: 'moderate', avgSpeedKmh: 36, delayMinutes: 8, coords: { x: 80, y: 52 }, lat: 28.5708, lng: 77.3261 },
+  { id: 'node-gurgaon', name: 'Gurgaon Cyber City', status: 'moderate', avgSpeedKmh: 38, delayMinutes: 12, coords: { x: 26, y: 82 }, lat: 28.4951, lng: 77.0894 },
+  { id: 'node-yamuna', name: 'Yamuna Bridge (ITO)', status: 'heavy', avgSpeedKmh: 20, delayMinutes: 24, coords: { x: 60, y: 42 }, lat: 28.6289, lng: 77.2410 },
+  { id: 'node-kashmere', name: 'Kashmere Gate ISBT', status: 'moderate', avgSpeedKmh: 29, delayMinutes: 11, coords: { x: 52, y: 26 }, lat: 28.6675, lng: 77.2285 },
 ];
 
 export const INITIAL_INCIDENTS: Incident[] = [
@@ -27,9 +27,13 @@ export const INITIAL_INCIDENTS: Incident[] = [
     confidencePercent: 94,
     socialSource: '@dtptraffic + 14 Tweets',
     description: 'Two commercial vehicles stalled after a multi-car fender bender blocking 2 lanes. Spillover expected along Barakhamba & Janpath.',
+    coords: { x: 48, y: 38 },
     lat: 28.6315,
     lng: 77.2167,
-    cascadingRoads: ['Barakhamba Road', 'Janpath', 'Radial Road 1', 'Minto Road']
+    cascadingRoads: ['Barakhamba Road', 'Janpath', 'Radial Road 1', 'Minto Road'],
+    affectedRoads: ['Outer Circle', 'Radial Road 1', 'Janpath'],
+    verificationStatus: 'confirmed',
+    sourcesCount: 15
   },
   {
     id: 'inc-2',
@@ -42,9 +46,13 @@ export const INITIAL_INCIDENTS: Incident[] = [
     confidencePercent: 98,
     socialSource: 'IMD Rain Alert + Citizen Live Uploads',
     description: 'Sudden intense downpour caused 1.5 ft water accumulation. Slow movement towards Azadpur Mandi and Mukarba Chowk.',
+    coords: { x: 34, y: 18 },
     lat: 28.7256,
     lng: 77.1128,
-    cascadingRoads: ['Mukarba Chowk', 'GT Karnal Road', 'Azadpur Underpass']
+    cascadingRoads: ['Mukarba Chowk', 'GT Karnal Road', 'Azadpur Underpass'],
+    affectedRoads: ['GT Karnal Road', 'Azadpur Underpass'],
+    verificationStatus: 'confirmed',
+    sourcesCount: 24
   },
   {
     id: 'inc-3',
@@ -57,9 +65,13 @@ export const INITIAL_INCIDENTS: Incident[] = [
     confidencePercent: 89,
     socialSource: 'FASTag Sensor Anomaly + X Posts',
     description: 'Automatic barrier malfunction at lanes 3 & 4 causing 1.2km tailback entering South Delhi from Noida.',
-    lat: 28.5905,
-    lng: 77.3020,
-    cascadingRoads: ['Mayur Vihar Link Road', 'Noida-Greater Noida Expressway']
+    coords: { x: 72, y: 58 },
+    lat: 28.5626,
+    lng: 77.2917,
+    cascadingRoads: ['Mayur Vihar Link Road', 'Noida-Greater Noida Expressway'],
+    affectedRoads: ['DND Flyway Toll Lanes', 'Noida Link Road'],
+    verificationStatus: 'confirmed',
+    sourcesCount: 8
   },
   {
     id: 'inc-4',
@@ -72,9 +84,13 @@ export const INITIAL_INCIDENTS: Incident[] = [
     confidencePercent: 96,
     socialSource: 'Delhi Police Circular #402',
     description: 'Temporary traffic hold expected for diplomatic delegation movement between Airport Express Corridor and Chanakyapuri.',
-    lat: 28.5915,
-    lng: 77.1610,
-    cascadingRoads: ['Sardar Patel Marg', 'Dhaula Kuan Flyover', 'Ring Road South']
+    coords: { x: 36, y: 58 },
+    lat: 28.5930,
+    lng: 77.1860,
+    cascadingRoads: ['Sardar Patel Marg', 'Dhaula Kuan Flyover', 'Ring Road South'],
+    affectedRoads: ['Sardar Patel Marg', 'Dhaula Kuan Loop'],
+    verificationStatus: 'confirmed',
+    sourcesCount: 2
   },
   {
     id: 'inc-5',
@@ -87,9 +103,13 @@ export const INITIAL_INCIDENTS: Incident[] = [
     confidencePercent: 92,
     socialSource: 'Police Control Room Signal',
     description: 'Peaceful rally assembly blocking right lane towards Anand Vihar. Heavy police barricading in place.',
-    lat: 28.6260,
-    lng: 77.3260,
-    cascadingRoads: ['Delhi-Meerut Expressway', 'Anand Vihar ISBT Road']
+    coords: { x: 82, y: 38 },
+    lat: 28.6247,
+    lng: 77.3275,
+    cascadingRoads: ['Delhi-Meerut Expressway', 'Anand Vihar ISBT Road'],
+    affectedRoads: ['Delhi-Meerut Expressway', 'Ghazipur Border Road'],
+    verificationStatus: 'confirmed',
+    sourcesCount: 14
   }
 ];
 
@@ -185,41 +205,5 @@ export const CAMERA_FEEDS: CameraFeed[] = [
   }
 ];
 
-export const PRESET_ROUTES: RouteOption[] = [
-  {
-    id: 'route-opt-1',
-    name: 'Option 1: Barakhamba - Pragati Maidan Bypass',
-    distanceKm: 18.4,
-    normalTimeMins: 25,
-    predictedTimeMins: 29,
-    delayMins: 4,
-    isAiRecommended: true,
-    congestionPoints: ['Pragathi Maidan Tunnel (Clear)', 'Mathura Road (Moderate)'],
-    sparklineData: [12, 14, 18, 16, 20, 24, 22, 18, 15],
-    viaRoads: 'Via Pragati Tunnel & Mathura Road'
-  },
-  {
-    id: 'route-opt-2',
-    name: 'Option 2: Direct Ring Road (Standard Maps)',
-    distanceKm: 16.2,
-    normalTimeMins: 22,
-    predictedTimeMins: 50,
-    delayMins: 28,
-    isAiRecommended: false,
-    congestionPoints: ['CP Inner Circle (Severe)', 'AIIMS Junction (Severe)'],
-    sparklineData: [20, 28, 42, 55, 62, 58, 52, 48, 45],
-    viaRoads: 'Via Outer Ring Road & Regal Circle'
-  },
-  {
-    id: 'route-opt-3',
-    name: 'Option 3: Lodi Road & August Kranti Marg',
-    distanceKm: 19.8,
-    normalTimeMins: 28,
-    predictedTimeMins: 34,
-    delayMins: 6,
-    isAiRecommended: false,
-    congestionPoints: ['Lodi Flyover (Light)', 'Andrews Ganj (Moderate)'],
-    sparklineData: [15, 18, 22, 25, 28, 26, 24, 22, 20],
-    viaRoads: 'Via Lodi Estate & Khel Gaon Marg'
-  }
-];
+import { INCIDENT_ROUTES } from './incidentRoutes';
+export const PRESET_ROUTES: RouteOption[] = INCIDENT_ROUTES['inc-1'];

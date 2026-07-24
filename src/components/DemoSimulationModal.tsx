@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { Sparkles, Zap, X, Check } from 'lucide-react';
-import { Incident, IncidentCategory } from '../types';
+import { Incident } from '../types';
+import { DEMO_SCENARIOS } from '../data/demoScenarios';
 
 interface DemoSimulationModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onTriggerIncident: (newIncident: Incident, opts?: { fake?: boolean }) => void;
+  onTriggerIncident: (newIncident: Incident) => void;
 }
 
 export const DemoSimulationModal: React.FC<DemoSimulationModalProps> = ({
@@ -17,79 +18,29 @@ export const DemoSimulationModal: React.FC<DemoSimulationModalProps> = ({
 
   if (!isOpen) return null;
 
-  const scenarios: {
-    title: string;
-    area: string;
-    category: IncidentCategory;
-    delay: number;
-    startsIn: number;
-    desc: string;
-    lat: number;
-    lng: number;
-    fake?: boolean;
-  }[] = [
-    {
-      title: 'Monsoon Waterlogging & Pump Failure',
-      area: 'Minto Road Bridge Underpass',
-      category: 'waterlogging',
-      delay: 52,
-      startsIn: 12,
-      desc: '1.8 feet water accumulation reported after torrential 20-minute cloudburst. Buses stalled near New Delhi Railway Station approach.',
-      lat: 28.6330,
-      lng: 77.2260,
-    },
-    {
-      title: 'VVIP Delegation Convoy Movement',
-      area: 'Sardar Patel Marg / Chanakyapuri',
-      category: 'vip_movement',
-      delay: 24,
-      startsIn: 18,
-      desc: '30-minute security traffic hold enforced between IGI Airport Express and Diplomatic Enclave.',
-      lat: 28.5930,
-      lng: 77.1860,
-    },
-    {
-      title: 'Commercial Truck Breakdown & Fuel Spill',
-      area: 'AIIMS Flyover Ramp towards Moti Bagh',
-      category: 'collision',
-      delay: 38,
-      startsIn: 8,
-      desc: 'Heavy axle breakdown blocking 2 central lanes on Ring Road. Diesel oil spill requires fire tender cleanup.',
-      lat: 28.5672,
-      lng: 77.2100,
-    },
-    {
-      title: 'Viral "Road Blocked" Rumor',
-      area: 'Karol Bagh Market',
-      category: 'rally',
-      delay: 20,
-      startsIn: 14,
-      desc: 'Unconfirmed WhatsApp forward claiming a large protest is blocking Ajmal Khan Road. No official source or GPS slowdown yet — stays UNVERIFIED until a second signal corroborates.',
-      lat: 28.6512,
-      lng: 77.1907,
-      fake: true,
-    },
-  ];
-
   const handleApplyScenario = () => {
-    const sc = scenarios[selectedScenario];
+    const sc = DEMO_SCENARIOS[selectedScenario];
     const newInc: Incident = {
       id: `sim-${Date.now()}`,
       title: sc.title,
       area: sc.area,
-      severity: sc.fake ? 'moderate' : 'severe',
+      severity: 'severe',
       category: sc.category,
       delayMinutes: sc.delay,
       startsInMinutes: sc.startsIn,
-      confidencePercent: sc.fake ? 44 : 98,
-      socialSource: sc.fake ? 'Unverified WhatsApp forward' : 'LIVE DEMO SIMULATOR SIGNAL',
+      confidencePercent: 98,
+      socialSource: 'LIVE DEMO SIMULATOR SIGNAL',
       description: sc.desc,
+      coords: sc.coords,
       lat: sc.lat,
       lng: sc.lng,
       cascadingRoads: ['Ring Road South', 'August Kranti Marg', 'Aurobindo Marg'],
+      affectedRoads: [sc.area],
+      verificationStatus: 'confirmed',
+      sourcesCount: 18
     };
 
-    onTriggerIncident(newInc, { fake: sc.fake });
+    onTriggerIncident(newInc);
     onClose();
   };
 
@@ -118,7 +69,7 @@ export const DemoSimulationModal: React.FC<DemoSimulationModalProps> = ({
 
         {/* Scenarios List */}
         <div className="space-y-3">
-          {scenarios.map((sc, idx) => {
+          {DEMO_SCENARIOS.map((sc, idx) => {
             const isSelected = selectedScenario === idx;
             return (
               <div

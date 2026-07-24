@@ -6,6 +6,10 @@ const base: Omit<Incident, 'lat' | 'lng' | 'title' | 'area'> = {
   id: 'x', severity: 'severe', category: 'collision', delayMinutes: 20,
   startsInMinutes: 10, confidencePercent: 90, socialSource: '', description: '',
   cascadingRoads: [],
+  coords: { x: 0, y: 0 },
+  affectedRoads: [],
+  verificationStatus: 'warning',
+  sourcesCount: 1
 };
 
 const inc = (title: string, area: string, lat: number, lng: number): Incident =>
@@ -16,7 +20,7 @@ const sig = (impactArea: string, text = ''): SocialSignal =>
      sentiment: 'warning', reliabilityScore: 90, impactArea });
 
 const node = (status: TrafficNode['status'], lat: number, lng: number): TrafficNode =>
-  ({ id: 'n', name: '', status, avgSpeedKmh: 10, delayMinutes: 10, lat, lng });
+  ({ id: 'n', name: '', status, avgSpeedKmh: 10, delayMinutes: 10, lat, lng, coords: { x: 0, y: 0 } });
 
 // Lone signal, no nearby severe node -> unverified (the fake-news case)
 assert.equal(
