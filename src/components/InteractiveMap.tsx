@@ -37,13 +37,16 @@ const nodeColor = (status: string) =>
   : '#059669';
 
 const sevColor = (s: string) =>
-  s === 'severe' ? '#D93B2D' : s === 'moderate' ? '#D97706' : '#eab308';
+  s === 'severe' ? '#D93B2D'
+  : s === 'heavy' ? '#D97706'
+  : s === 'moderate' ? '#F59E0B'
+  : '#eab308';
 
 const incidentIcon = (selected: boolean, unverified: boolean) => {
   const c = unverified ? '234,179,8' : '217,59,45'; // yellow vs red
   return L.divIcon({
     className: '',
-    html: `<div style="transform:translate(-50%,-50%);display:flex;align-items:center;justify-content:center;width:26px;height:26px;background:rgba(${c},${
+    html: `<div style="display:flex;align-items:center;justify-content:center;width:26px;height:26px;background:rgba(${c},${
       selected ? '1' : '0.85'
     });border:2px solid #16191A;color:#fff;font-size:14px;font-weight:bold;box-shadow:0 0 8px rgba(${c},0.7)">${unverified ? '?' : '⚠'}</div>`,
     iconSize: [26, 26],

@@ -2,8 +2,8 @@ import { Incident } from '../types';
 
 // Jam impact-radius (meters) at "now" (t=0) and "+30 min" (t=1), by severity.
 // ponytail: linear growth Now->+30; swap for graph propagation only if a demo ever needs it.
-const BASE: Record<string, number> = { severe: 600, moderate: 400, low: 250 };
-const MAX: Record<string, number> = { severe: 1600, moderate: 1000, low: 600 };
+const BASE: Record<string, number> = { severe: 600, heavy: 500, moderate: 400, low: 250 };
+const MAX: Record<string, number> = { severe: 1600, heavy: 1300, moderate: 1000, low: 600 };
 
 export function radiusAt(
   inc: Pick<Incident, 'severity' | 'confidencePercent'>,

@@ -34,6 +34,8 @@ interface DashboardProps {
   routes: RouteOption[];
   onOpenDemoModal: () => void;
   onNavigateToRoutePlanner: () => void;
+  onCorroborate: (inc: Incident) => void;
+  dataLive: boolean;
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({
@@ -44,6 +46,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
   routes,
   onOpenDemoModal,
   onNavigateToRoutePlanner,
+  onCorroborate,
+  dataLive,
 }) => {
   const [forecastMinutes, setForecastMinutes] = useState<number>(30);
   const [selectedIncidentId, setSelectedIncidentId] = useState<string | null>('inc-1');
@@ -109,9 +113,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </div>
 
           <div className="flex items-center gap-4 text-xs text-[#1A1A1A]/70">
-            <span className="hidden md:flex items-center gap-1.5 text-[#D93B2D] bg-[#D93B2D]/10 border border-[#D93B2D]/30 px-2.5 py-0.5 font-bold uppercase tracking-wider">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#D93B2D] animate-ping" />
-              SYSTEM OPERATIONAL
+            <span className={`hidden md:flex items-center gap-1.5 border px-2.5 py-0.5 font-bold uppercase tracking-wider ${
+              dataLive ? 'text-emerald-700 bg-emerald-600/10 border-emerald-600/30' : 'text-[#D97706] bg-[#D97706]/10 border-[#D97706]/30'
+            }`}>
+              <span className={`w-1.5 h-1.5 rounded-full animate-ping ${dataLive ? 'bg-emerald-600' : 'bg-[#D97706]'}`} />
+              {dataLive ? 'LIVE DATA' : 'SIMULATION'}
             </span>
             <div className="flex items-center gap-1 font-bold text-[#1A1A1A]">
               <Clock className="w-3.5 h-3.5" />
@@ -251,6 +257,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 <div className="text-[10px] text-[#1A1A1A]/60 font-mono border-t border-[#1A1A1A]/10 pt-2 mt-0.5">
                   Confidence: <span className="text-emerald-700 font-bold">{selectedIncident ? selectedIncident.confidencePercent : 94}%</span> ({selectedIncident?.socialSource || 'Multi-channel social feed'})
                 </div>
+                {selectedIncident && verifications[selectedIncident.id] === 'unverified' && (
+                  <button
+                    onClick={() => onCorroborate(selectedIncident)}
+                    className="mt-1 text-[10px] font-mono font-bold uppercase bg-yellow-500 text-[#1A1A1A] px-2 py-1.5 hover:bg-[#1A1A1A] hover:text-white transition-colors cursor-pointer"
+                  >
+                    ⚠ Unverified — Corroborate with 2nd source
+                  </button>
+                )}
               </div>
             </div>
 
