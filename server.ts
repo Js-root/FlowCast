@@ -28,6 +28,39 @@ if (apiKey) {
   }
 }
 
+// In-Memory Cache Infrastructure with Time-to-Live (TTL) Support
+interface CacheEntry<T> {
+  value: T;
+  expiry: number;
+}
+
+class MemoryCache {
+  private cache = new Map<string, CacheEntry<any>>();
+
+  get<T>(key: string): T | null {
+    const entry = this.cache.get(key);
+    if (!entry) return null;
+    if (Date.now() > entry.expiry) {
+      this.cache.delete(key);
+      return null;
+    }
+    return entry.value;
+  }
+
+  set<T>(key: string, value: T, ttlMs: number): void {
+    this.cache.set(key, {
+      value,
+      expiry: Date.now() + ttlMs
+    });
+  }
+
+  clear(): void {
+    this.cache.clear();
+  }
+}
+
+const backendCache = new MemoryCache();
+
 // Health Check API
 app.get("/api/health", (req, res) => {
   res.json({
@@ -40,6 +73,13 @@ app.get("/api/health", (req, res) => {
 
 // Live TomTom Incidents API (Version 5 GeoJSON)
 app.get("/api/live-incidents", async (req, res) => {
+  const cacheKey = "incidents:live";
+  const cachedVal = backendCache.get<any>(cacheKey);
+  if (cachedVal) {
+    console.log(`[Cache Hit] Live Incidents list`);
+    return res.json(cachedVal);
+  }
+
   const tomtomKey = process.env.TOMTOM_API_KEY;
   if (!tomtomKey) {
     return res.status(400).json({ success: false, error: "TomTom API key not configured" });
@@ -114,7 +154,9 @@ app.get("/api/live-incidents", async (req, res) => {
       };
     });
 
-    return res.json({ success: true, incidents: mappedIncidents });
+    const resultObj = { success: true, incidents: mappedIncidents };
+    backendCache.set(cacheKey, resultObj, 60 * 1000); // 60 seconds TTL
+    return res.json(resultObj);
   } catch (error: any) {
     console.error("Error in /api/live-incidents:", error);
     return res.status(500).json({ success: false, error: error?.message || "Failed to fetch live incidents" });
@@ -123,6 +165,13 @@ app.get("/api/live-incidents", async (req, res) => {
 
 // Live Telegram Social Stream Scraper
 app.get("/api/live-social", async (req, res) => {
+  const cacheKey = "social:live";
+  const cachedVal = backendCache.get<any>(cacheKey);
+  if (cachedVal) {
+    console.log(`[Cache Hit] Live Telegram posts`);
+    return res.json(cachedVal);
+  }
+
   try {
     const response = await fetch("https://t.me/s/delhitrafficupdates");
     const html = await response.text();
@@ -147,7 +196,9 @@ app.get("/api/live-social", async (req, res) => {
       );
     }
 
-    return res.json({ success: true, posts: posts.slice(-5) });
+    const resultObj = { success: true, posts: posts.slice(-5) };
+    backendCache.set(cacheKey, resultObj, 60 * 1000); // 60 seconds TTL
+    return res.json(resultObj);
   } catch (err: any) {
     console.error("Live social stream failed:", err);
     return res.status(500).json({ success: false, error: err.message });
@@ -367,6 +418,15 @@ async function geocode(query: string, tomtomKey?: string): Promise<[number, numb
     }
   }
 
+  const cacheKey = `geocode:${norm}`;
+  const cachedVal = backendCache.get<[number, number]>(cacheKey);
+  if (cachedVal) {
+    console.log(`[Cache Hit] Geocode lookup: "${norm}" -> [${cachedVal}]`);
+    return cachedVal;
+  }
+
+  let result: [number, number] | null = null;
+
   if (tomtomKey) {
     try {
       const url = `https://api.tomtom.com/search/2/geocode/${encodeURIComponent(query)}.json?key=${tomtomKey}&countrySet=IN&limit=1`;
@@ -374,25 +434,31 @@ async function geocode(query: string, tomtomKey?: string): Promise<[number, numb
       const data = await res.json() as any;
       if (data.results && data.results.length > 0) {
         const { lat, lon } = data.results[0].position;
-        return [lat, lon];
+        result = [lat, lon];
       }
     } catch (err) {
       console.error("TomTom Search Geocoding failed:", err);
     }
   }
 
-  try {
-    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query + ", Delhi")}&format=json&limit=1`;
-    const res = await fetch(url, { headers: { "User-Agent": "FlowCast-Traffic-Center" } });
-    const data = await res.json() as any;
-    if (data && data.length > 0) {
-      return [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+  if (!result) {
+    try {
+      const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query + ", Delhi")}&format=json&limit=1`;
+      const res = await fetch(url, { headers: { "User-Agent": "FlowCast-Traffic-Center" } });
+      const data = await res.json() as any;
+      if (data && data.length > 0) {
+        result = [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+      }
+    } catch (err) {
+      console.error("Nominatim search failed:", err);
     }
-  } catch (err) {
-    console.error("Nominatim search failed:", err);
   }
 
-  return null;
+  if (result) {
+    backendCache.set(cacheKey, result, 3600 * 1000); // 1 hour TTL
+  }
+
+  return result;
 }
 
 // Route Optimization & Disruption Analysis Route
@@ -404,13 +470,20 @@ app.post("/api/route-analyze", async (req, res) => {
       return res.status(400).json({ success: false, error: "Origin and Destination are required" });
     }
 
+    const cacheKey = `route:${origin.toLowerCase().trim()}:${destination.toLowerCase().trim()}:${timeHorizonMins || 30}`;
+    const cachedRoute = backendCache.get<any>(cacheKey);
+    if (cachedRoute) {
+      console.log(`[Cache Hit] Route calculation: "${origin}" to "${destination}"`);
+      return res.json(cachedRoute);
+    }
+
     const tomtomKey = process.env.TOMTOM_API_KEY;
 
     // Local Mock Fallback function if TomTom is keyless or calls fail
     const handleLocalFallback = () => {
       const savedMins = 18;
       const distDiff = 1.2;
-      return res.json({
+      const resultObj = {
         success: true,
         standardRoute: {
           distanceKm: 16.2,
@@ -445,7 +518,9 @@ app.post("/api/route-analyze", async (req, res) => {
         },
         aiSummary: `Standard maps routing via Inner Ring Road is gridlocked with severe congestion (+28m delay). Taking the AI recommended Pragati Tunnel bypass saves approximately ${savedMins} minutes.`,
         trafficMetrics: "Delhi Sensors indicate heavy queue formations along standard radial corridors."
-      });
+      };
+      backendCache.set(cacheKey, resultObj, 300 * 1000); // 5 mins cache
+      return res.json(resultObj);
     };
 
     if (!tomtomKey) {
@@ -528,7 +603,7 @@ app.post("/api/route-analyze", async (req, res) => {
 
     // Feed to Groq if key exists, otherwise fallback to offline AI text template
     if (!aiClient || !process.env.GROQ_API_KEY) {
-      return res.json({
+      const resultObj = {
         success: true,
         standardRoute: {
           distanceKm: parseFloat(standardDistance.toFixed(1)),
@@ -552,7 +627,9 @@ app.post("/api/route-analyze", async (req, res) => {
         },
         aiSummary: `Standard routing faces heavy traffic delay (+${standardDelay}m). Taking the AI Recommended detour bypasses main congestion, saving approximately ${savedMinutes} minutes.`,
         trafficMetrics: `TomTom Live Traffic reports average speeds of ${Math.round(standardDistance / (standardEta/60))} km/h along this corridor.`
-      });
+      };
+      backendCache.set(cacheKey, resultObj, 300 * 1000); // 5 mins cache
+      return res.json(resultObj);
     }
 
     const groqPrompt = `Analyze route options between "${origin}" and "${destination}" in Delhi NCR.
@@ -575,7 +652,7 @@ Respond in JSON format with these exact keys:
     const text = response.choices[0]?.message?.content || "{}";
     const data = JSON.parse(text);
 
-    return res.json({
+    const resultObj = {
       success: true,
       standardRoute: {
         distanceKm: parseFloat(standardDistance.toFixed(1)),
@@ -599,7 +676,10 @@ Respond in JSON format with these exact keys:
       },
       aiSummary: data.aiSummary || `Bypassing major congestion saves ${savedMinutes} minutes.`,
       trafficMetrics: data.trafficMetrics || `Delhi Traffic System reports live speed anomalies on standard radial roads.`
-    });
+    };
+
+    backendCache.set(cacheKey, resultObj, 300 * 1000); // 5 mins cache
+    return res.json(resultObj);
 
   } catch (error: any) {
     console.error("Error in /api/route-analyze:", error);
