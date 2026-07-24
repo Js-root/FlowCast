@@ -1,0 +1,297 @@
+========================================================
+  FLOWCAST — Predict traffic before it happens
+========================================================
+
+AI-Powered Micro-Event Traffic Disruption Predictor.
+The Pre-Traffic Intelligence Layer for smart cities.
+
+FlowCast fuses real-time social-media event signals with GPS
+anomalies to forecast Delhi traffic jams 15–30 minutes BEFORE
+congestion forms.
+
+(flow + forecast)
+
+
+--------------------------------------------------------
+  EXECUTIVE SUMMARY
+--------------------------------------------------------
+
+THE PROBLEM
+Delhi's roads gridlock within minutes from protests, VIP convoys,
+processions, road cave-ins, floods, and accidents. Navigation apps
+rely on vehicle-speed data — so they only see congestion AFTER it
+has already formed.
+
+THE SOLUTION
+FlowCast fuses real-time social-media signals, official updates,
+and GPS anomalies to forecast disruptions 15–30 minutes before
+congestion forms — so commuters and fleets can reroute early.
+
+THE VISION
+Become the AI prediction layer under every navigation platform,
+logistics fleet, and smart-city traffic system.
+
+
+--------------------------------------------------------
+  ELEVATOR PITCH (30 seconds)
+--------------------------------------------------------
+
+Imagine knowing about a traffic jam before it exists. FlowCast
+listens to geo-tagged social posts, official traffic handles, and
+live GPS. Using multilingual event detection and spatio-temporal
+prediction, it forecasts disruptions from protests, VIP movement,
+accidents, or road failures 15–30 minutes ahead — helping
+commuters, emergency responders, and logistics fleets avoid delays
+before they happen.
+
+
+--------------------------------------------------------
+  THE PROBLEM (in detail)
+--------------------------------------------------------
+
+Delhi roads block within minutes from:
+  - Protests
+  - VIP convoys
+  - Religious processions
+  - Road cave-ins
+  - Flash floods
+  - Major accidents
+
+Navigation platforms react to speed data — they recognize
+congestion only after it develops. The result:
+  - Commuters waste hours
+  - Ambulances lose critical response time
+  - Logistics companies take losses
+  - Authorities get situational awareness too late
+
+No system today predicts these disruptions before congestion
+begins.
+
+GOAL: Convert reactive traffic management into predictive
+traffic intelligence.
+
+
+--------------------------------------------------------
+  WHO IT'S FOR
+--------------------------------------------------------
+
+PRIMARY USERS
+  - Commuters
+  - Cab drivers
+  - Delivery partners
+  - Fleet operators
+  - Emergency vehicles
+
+SECONDARY USERS
+  - Delhi Traffic Police
+  - Smart City authorities
+  - Municipal corporations
+  - Public transport authorities
+  - Insurers
+
+PERSONAS
+  - Commuter ........... wants the fastest route before roads block.
+  - Ambulance driver ... needs predictive rerouting to save lives.
+  - Logistics manager .. wants fleet routing + ETA prediction,
+                         fewer SLA breaches.
+  - Traffic control room needs city-wide disruption awareness.
+
+
+--------------------------------------------------------
+  WHAT MAKES IT DIFFERENT
+--------------------------------------------------------
+
+Prediction, not reaction. FlowCast combines:
+  - Multilingual (Hinglish / Hindi) event detection from posts
+  - Social-media intelligence as an early signal
+  - GPS flow-anomaly correlation
+  - Spatial impact-radius forecasting (Now, +15, +30 minutes)
+
+The edge: fusing UNSTRUCTURED social signals with STRUCTURED GPS
+data to warn BEFORE the speed data even moves.
+
+
+--------------------------------------------------------
+  FEATURE PLAN — PHASE 1 (build fast, ship, win)
+--------------------------------------------------------
+
+Rule: Phase 1 holds only features that are BOTH cheap to build AND
+win points on stage. Anything needing real infrastructure, paid
+data, or ML training moves to Phase 2.
+
+CORE PIPELINE
+  - Delhi map (dark theme) with 3 scripted events
+    (Connaught Place / ITO / India Gate)
+  - Event classification — keyword rules + optional AI (the
+    "AI" layer, Hinglish-aware)
+  - Location lookup from a Delhi landmark gazetteer
+  - Warning -> Confirmed cross-validation
+    (1 signal = yellow, 2 signals = red) — the live answer to
+    "what if the tweet is fake?"
+  - Jam impact-radius with a Now / +15 / +30 minute slider —
+    the before/after, the heart of the pitch
+  - Naive alternative-route line around the jam
+  - "Inject event" buttons — a deterministic, judge-triggerable demo
+
+RICH ADDS (must-have, cheap, high-impact)
+  - Live incoming-post feed panel — makes social listening visible
+  - Alert toast — "Heavy congestion expected in 18 min"
+  - Event popup — type, confidence %, signal count, estimated delay
+  - Fake-news demo — a lone unverified post stays yellow, then
+    gets debunked (turns the hardest judge question into a feature)
+  - Impact stats chip — roads affected, area, estimated vehicles
+    (clearly labeled as an estimate)
+
+RICH ADDS (stretch, after the core works)
+  - Voice alert (spoken warning) — native, zero dependencies
+  - Browser push notification — "the fleet gets pinged"
+  - Confidence-scaled visual polish
+
+
+--------------------------------------------------------
+  FEATURE PLAN — PHASE 2 (post-demo roadmap)
+--------------------------------------------------------
+
+Harder, time-consuming, or infrastructure-heavy work:
+  - Real social feed (Apify / Nitter, then X filtered stream)
+  - Live GPS / traffic (TomTom / HERE flow API)
+  - Free-text location geocoding (Nominatim)
+  - Real routing engine (OSRM / Mapbox directions)
+  - Fine-tuned Hinglish language model (IndicBERT / XLM-R)
+  - Graph-based jam propagation across the road network
+  - Persistence + cache (PostGIS + Redis)
+  - Streaming pipeline (Kafka / Redpanda)
+  - Fleet dashboard with auth + multi-tenant
+  - Metro-delay detection, WhatsApp community signals
+  - Mobile app, Android widget, Google Maps plugin
+  - Multi-city expansion + accuracy backtesting
+
+
+--------------------------------------------------------
+  HOW IT COMPARES
+--------------------------------------------------------
+
+                                Google Maps   Waze    FlowCast
+  Live traffic .................... yes ....... yes ..... yes
+  Historical patterns ............. yes ....... yes ..... yes
+  Social-media signals ............ no ........ no ...... yes
+  Protest/VIP/cave-in prediction .. no ........ no ...... yes
+  Pre-congestion forecast (15-30m)  no ..... limited .... yes
+  Impact-radius propagation ....... no ........ no ...... yes
+
+
+--------------------------------------------------------
+  BUSINESS MODEL
+--------------------------------------------------------
+
+  - SaaS ............... per-vehicle subscription for logistics,
+                         cab, and delivery fleets.
+  - API licensing ...... prediction API for smart cities,
+                         government, and navigation apps.
+  - Enterprise dashboard for emergency services, fleet managers,
+                         and control centers.
+  - Consumer app ....... freemium; premium / ad-supported alerts.
+
+MARKET
+  Delhivery, Blue Dart, Blinkit, Swiggy, Zomato, Uber, Ola,
+  Delhi Traffic Police, Smart Cities Mission.
+
+
+--------------------------------------------------------
+  ROADMAP
+--------------------------------------------------------
+
+  Phase 1 ... Delhi MVP
+  Phase 2 ... NCR expansion
+  Phase 3 ... India-wide rollout
+  Phase 4 ... Global smart cities
+  Phase 5 ... Autonomous-vehicle integration
+
+
+--------------------------------------------------------
+  RISKS & MITIGATION
+--------------------------------------------------------
+
+  Noisy / fake social data
+    -> Cross-source validation, confidence scoring, and the
+       Warning -> Confirmed gate.
+
+  Accurate location extraction
+    -> Landmark gazetteer (plus Nominatim later); prioritize
+       official handles.
+
+  Real-time processing
+    -> Poll now; move to streaming at scale.
+
+  Event verification
+    -> GPS correlation + duplicate detection.
+
+SUCCESS METRICS
+  Event-detection accuracy, prediction precision, average warning
+  time, route accuracy, API latency, user engagement.
+
+
+--------------------------------------------------------
+  3-MINUTE PITCH STRUCTURE
+--------------------------------------------------------
+
+  Hook (20s) ...... "What if Maps told you about a jam BEFORE it
+                     exists?"
+  Problem (40s) ... Delhi's sudden disruptions; reactive apps
+                    arrive late.
+  Solution (60s) .. FlowCast's social + GPS fusion pipeline.
+  Demo (60s) ...... the live before/after on the map.
+  Impact (20s) .... commuters, emergency services, fleets.
+  Close (20s) ..... "FlowCast doesn't just navigate traffic — it
+                     predicts urban mobility."
+
+
+--------------------------------------------------------
+  JUDGE Q&A PREP
+--------------------------------------------------------
+
+  Q: Why AI?
+  A: Real-time understanding of multilingual, unstructured social
+     data; it warns before GPS speed patterns even move.
+
+  Q: How is this different from Google Maps?
+  A: Maps reacts after congestion forms. FlowCast forecasts from
+     social signals + GPS anomalies before it begins.
+
+  Q: How do you handle misinformation?
+  A: Confidence scores plus GPS / official cross-verification —
+     only corroborated events are marked Confirmed.
+
+  Q: How does it scale?
+  A: Modular and city-agnostic — onboard a new city by adding its
+     local data sources and map layers.
+
+  Q: "Show me the Kafka / big ML model."
+  A: Honest answer — the MVP runs a lean, zero-cost stack. The
+     heavy infrastructure is the funded production roadmap. We
+     built the demo, not the datacenter.
+
+
+--------------------------------------------------------
+  ONE-PAGE CHEAT SHEET
+--------------------------------------------------------
+
+  Problem ..... Navigation apps react too late to sudden disruptions.
+  Solution .... Predict traffic 15–30 min before congestion, using
+                social media + GPS.
+  Innovation .. Multimodal fusion: event detection + geospatial +
+                impact-radius propagation.
+  Build stack . Next.js, Leaflet, keyword+AI classify, landmark
+                gazetteer, mock feed, Vercel.
+  Prod stack .. FastAPI, Kafka, XLM-R, NetworkX, PostGIS, TomTom,
+                Mapbox.
+  Users ....... Commuters, fleets, emergency services, traffic
+                authorities.
+  Model ....... SaaS + enterprise dashboards + API licensing +
+                consumer app.
+  Impact ...... Faster emergency response, less travel time, better
+                mobility.
+
+  TAGLINE:  Predict traffic before it happens.
+
+========================================================
