@@ -1,20 +1,24 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# FlowCast
 
-# Run and deploy your AI Studio app
+Predictive traffic disruption forecasting and AI-optimized route planning for Delhi NCR.
 
-This contains everything you need to run your app locally.
-
-View your app in AI Studio: https://ai.studio/apps/d478c3b0-40b3-41ea-8b9c-2583f9dbd8b5
+FlowCast synthesizes real-time social telemetry and neural cascade modeling to forecast municipal gridlock 30 minutes before maps turn red.
 
 ## Run Locally
 
-**Prerequisites:**  Node.js
-
+**Prerequisites:** Node.js
 
 1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+   ```bash
+   npm install
+   ```
+2. Copy `.env.example` to `.env.local` and set your `GROQ_API_KEY`:
+   ```bash
+   cp .env.example .env.local
+   ```
+3. Run the development server:
+   ```bash
+   npm run dev
+   ```
+
+The local server will be accessible at `http://localhost:3000`.
