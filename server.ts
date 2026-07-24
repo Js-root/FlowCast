@@ -130,7 +130,12 @@ app.get("/api/live-incidents", async (req, res) => {
 
       const xScaled = Math.max(0, Math.min(100, Math.round(((lng - 77.0) / 0.4) * 100)));
       const yScaled = Math.max(0, Math.min(100, Math.round(((lat - 28.4) / 0.4) * 100)));
-      const sourcesCount = prop.aci?.numberOfReports || Math.floor(Math.random() * 8) + 8;
+      const sourcesCount = prop.aci?.numberOfReports || 0;
+      const probabilityRaw = prop.aci?.probabilityOfOccurrence || 'improbable';
+      const confidencePercent = probabilityRaw === 'certain' ? 98
+        : probabilityRaw === 'probable' ? 85
+        : probabilityRaw === 'possible' ? 65
+        : probabilityRaw === 'improbable' ? 30 : 50;
 
       return {
         id: prop.id ? String(prop.id) : `live-inc-${index}-${Date.now()}`,
@@ -140,7 +145,7 @@ app.get("/api/live-incidents", async (req, res) => {
         category: category,
         delayMinutes: delayMinutes,
         startsInMinutes: 0,
-        confidencePercent: 98,
+        confidencePercent: confidencePercent,
         socialSource: "TomTom Traffic Sensors",
         description: `${desc}. Length: ${Math.round(prop.length || 0)}m. Delay: ${delayMinutes}m.`,
         coords: { x: xScaled, y: yScaled },
@@ -153,6 +158,13 @@ app.get("/api/live-incidents", async (req, res) => {
       };
     });
 
+    // Only return genuine incidents: at least 1 report AND confidence >= 70%
+    const genuineIncidents = mappedIncidents
+      .filter((inc: any) => inc.sourcesCount >= 1 && inc.confidencePercent >= 70)
+      .sort((a: any, b: any) => b.sourcesCount - a.sourcesCount)
+      .slice(0, 8); // Top 8 most-reported
+
+    return res.json({ success: true, incidents: genuineIncidents });
     const resultObj = { success: true, incidents: mappedIncidents };
     backendCache.set(cacheKey, resultObj, 60 * 1000); // 60 seconds TTL
     return res.json(resultObj);

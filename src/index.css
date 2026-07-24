@@ -44,6 +44,17 @@
   to { opacity: 1; transform: scale(1); }
 }
 
+/* Opacity-only open animation — safe for Leaflet maps (CSS transform on
+   ancestors breaks Leaflet tile/pane positioning). */
+@keyframes modalFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.animate-modal-in {
+  animation: modalFadeIn 0.2s ease-out forwards;
+}
+
 @keyframes pulseBadge {
   0% { box-shadow: 0 0 0 0 rgba(217, 59, 45, 0.4); }
   70% { box-shadow: 0 0 0 10px rgba(217, 59, 45, 0); }
@@ -71,22 +82,15 @@
   animation: radarSweep 8s linear infinite;
 }
 
-/* Editorial custom scrollbar */
+/* Completely hide scrollbars across all browsers */
+html, body {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: #F2F0EB;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #D4D0C7;
-  border-radius: 2px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #B8B4AA;
+  display: none;
+  width: 0px;
+  height: 0px;
 }
 
