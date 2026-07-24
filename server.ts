@@ -462,59 +462,64 @@ app.post("/api/route-analyze", async (req, res) => {
       return handleLocalFallback();
     }
 
-    // Query TomTom Routing API
-    const routingUrl = `https://api.tomtom.com/routing/1/calculateRoute/${originCoords[0]},${originCoords[1]}:${destCoords[0]},${destCoords[1]}/json?key=${tomtomKey}&traffic=true&travelMode=car&maxAlternatives=1`;
-    const routeRes = await fetch(routingUrl);
+    // Query TomTom Routing API for standard route
+    const standardUrl = `https://api.tomtom.com/routing/1/calculateRoute/${originCoords[0]},${originCoords[1]}:${destCoords[0]},${destCoords[1]}/json?key=${tomtomKey}&traffic=true&travelMode=car`;
+    const standardRes = await fetch(standardUrl);
     
-    if (!routeRes.ok) {
-      console.warn("TomTom Routing API returned non-ok status. Triggering local fallback.");
+    if (!standardRes.ok) {
+      console.warn("TomTom Standard Routing API returned non-ok status. Triggering local fallback.");
       return handleLocalFallback();
     }
 
-    const routeData = await routeRes.json() as any;
+    const standardData = await standardRes.json() as any;
 
-    if (!routeData.routes || routeData.routes.length === 0) {
-      console.warn("TomTom Routing API returned no routes. Triggering local fallback.");
+    if (!standardData.routes || standardData.routes.length === 0) {
+      console.warn("TomTom Routing API returned no standard routes. Triggering local fallback.");
       return handleLocalFallback();
     }
 
     // Extract Standard Route
-    const standardRouteData = routeData.routes[0];
+    const standardRouteData = standardData.routes[0];
     const standardPoints = standardRouteData.legs[0].points.map((p: any) => [p.latitude, p.longitude]);
     const standardDistance = standardRouteData.summary.lengthInMeters / 1000;
     const standardEta = Math.round(standardRouteData.summary.travelTimeInSeconds / 60);
     const standardDelay = Math.round(standardRouteData.summary.trafficDelayInSeconds / 60);
 
-    // Extract or Synthesize AI Detour Route
+    // Compute shifted midpoint waypoint to force TomTom to calculate a real alternative detour road path
+    const startPt = standardPoints[0];
+    const endPt = standardPoints[standardPoints.length - 1];
+    const midPt: [number, number] = [
+      (startPt[0] + endPt[0]) / 2 + 0.015,
+      (startPt[1] + endPt[1]) / 2 - 0.015
+    ];
+
+    // Query TomTom Routing API for real alternative detour route via shifted waypoint
+    const detourUrl = `https://api.tomtom.com/routing/1/calculateRoute/${originCoords[0]},${originCoords[1]}:${midPt[0]},${midPt[1]}:${destCoords[0]},${destCoords[1]}/json?key=${tomtomKey}&traffic=true&travelMode=car`;
+    
     let aiPoints = standardPoints;
     let aiDistance = standardDistance;
     let aiEta = standardEta;
     let aiDelay = standardDelay;
 
-    if (routeData.routes.length >= 2) {
-      const aiRouteData = routeData.routes[1];
-      aiPoints = aiRouteData.legs[0].points.map((p: any) => [p.latitude, p.longitude]);
-      aiDistance = aiRouteData.summary.lengthInMeters / 1000;
-      aiEta = Math.round(aiRouteData.summary.travelTimeInSeconds / 60);
-      aiDelay = Math.round(aiRouteData.summary.trafficDelayInSeconds / 60);
-    } else {
-      // Synthesize detour
-      const startPt = standardPoints[0];
-      const endPt = standardPoints[standardPoints.length - 1];
-      const midPt: [number, number] = [
-        (startPt[0] + endPt[0]) / 2 + 0.015,
-        (startPt[1] + endPt[1]) / 2 - 0.015
-      ];
-      aiPoints = [
-        startPt,
-        [startPt[0] * 0.7 + midPt[0] * 0.3, startPt[1] * 0.7 + midPt[1] * 0.3],
-        midPt,
-        [endPt[0] * 0.3 + midPt[0] * 0.7, endPt[1] * 0.3 + midPt[1] * 0.7],
-        endPt
-      ];
-      aiDistance = standardDistance * 1.15;
-      aiDelay = Math.max(0, Math.round(standardDelay * 0.15));
-      aiEta = Math.max(5, Math.round((standardRouteData.summary.travelTimeInSeconds - standardRouteData.summary.trafficDelayInSeconds) / 60) + aiDelay);
+    try {
+      const detourRes = await fetch(detourUrl);
+      if (detourRes.ok) {
+        const detourData = await detourRes.json() as any;
+        if (detourData.routes && detourData.routes.length > 0) {
+          const aiRouteData = detourData.routes[0];
+          // Collect points across both legs (start->midpoint and midpoint->destination)
+          const pointsList: [number, number][] = [];
+          for (const leg of aiRouteData.legs) {
+            pointsList.push(...leg.points.map((p: any) => [p.latitude, p.longitude]));
+          }
+          aiPoints = pointsList;
+          aiDistance = aiRouteData.summary.lengthInMeters / 1000;
+          aiEta = Math.round(aiRouteData.summary.travelTimeInSeconds / 60);
+          aiDelay = Math.round(aiRouteData.summary.trafficDelayInSeconds / 60);
+        }
+      }
+    } catch (err) {
+      console.warn("Failed to fetch detour route from TomTom:", err);
     }
 
     const savedMinutes = Math.max(0, standardEta - aiEta);
