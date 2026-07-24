@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Sparkles, Zap, X, Check } from 'lucide-react';
-import { Incident } from '../types';
+import { Incident, IncidentCategory } from '../types';
 
 interface DemoSimulationModalProps {
   isOpen: boolean;
@@ -20,7 +20,7 @@ export const DemoSimulationModal: React.FC<DemoSimulationModalProps> = ({
   const scenarios: {
     title: string;
     area: string;
-    category: any;
+    category: IncidentCategory;
     delay: number;
     startsIn: number;
     desc: string;

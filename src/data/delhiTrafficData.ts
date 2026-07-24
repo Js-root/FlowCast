@@ -50,7 +50,7 @@ export const INITIAL_INCIDENTS: Incident[] = [
     id: 'inc-3',
     title: 'DND Flyway Heavy Toll Congestion',
     area: 'Mayur Vihar Side Toll Plaza',
-    severity: 'heavy' as any,
+    severity: 'heavy',
     category: 'signal_failure',
     delayMinutes: 18,
     startsInMinutes: 15,
