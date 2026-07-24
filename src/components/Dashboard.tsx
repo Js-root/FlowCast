@@ -363,21 +363,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 </button>
               </div>
             )}
-            <div className="relative w-full border border-[#1A1A1A]/20 shadow-sm bg-[#101415] overflow-hidden">
-              {/* Interactive Vector Map Canvas */}
-              <InteractiveMap
-                nodes={nodes}
-                incidents={incidents}
-                selectedIncident={selectedIncident}
-                onSelectIncident={onSelectIncidentId}
-                selectedNodeId={selectedNodeId}
-                onSelectNode={setSelectedNodeId}
-                forecastMinutesAhead={forecastMinutes}
-                detourPositions={selectedRoute?.polylinePositions}
-                selectedRouteIsAiRecommended={selectedRoute?.isAiRecommended}
-                selectedCity={selectedCity}
-              />
-
             {/* Map Preview Frame — Fills full available vertical height */}
             <div className="relative w-full flex-1 min-h-[480px] border border-[#1A1A1A]/30 shadow-lg bg-[#101415] overflow-hidden group flex flex-col">
               
@@ -406,8 +391,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
               {!isMapModalOpen && (
                 <InteractiveMap
                   nodes={nodes}
-                  incidents={[]}
-                  selectedIncident={null}
+                  incidents={incidents}
+                  selectedIncident={selectedIncident}
                   onSelectIncident={(id) => {
                     onSelectIncidentId(id);
                     setIsMapModalOpen(true);
@@ -419,6 +404,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   selectedRouteIsAiRecommended={selectedRoute?.isAiRecommended}
                   userLocation={userLocation}
                   fillContainer
+                  selectedCity={selectedCity}
                 />
               )}
               {isMapModalOpen && (
@@ -533,6 +519,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   detourPositions={selectedRoute?.polylinePositions}
                   selectedRouteIsAiRecommended={selectedRoute?.isAiRecommended}
                   fillContainer
+                  selectedCity={selectedCity}
+                  userLocation={userLocation}
                 />
               </div>
 

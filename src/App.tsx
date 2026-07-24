@@ -47,7 +47,7 @@ export default function App() {
         let locationName = `${latitude.toFixed(2)}°N, ${longitude.toFixed(2)}°E`;
 
         // Reverse geocoding via TomTom API
-        const tomtomKey = import.meta.env.VITE_TOMTOM_API_KEY;
+        const tomtomKey = (import.meta as any).env.VITE_TOMTOM_API_KEY;
         try {
           if (tomtomKey) {
             const res = await fetch(`https://api.tomtom.com/search/2/reverseGeocode/${latitude},${longitude}.json?key=${tomtomKey}`);
@@ -661,9 +661,6 @@ export default function App() {
               dispatchLogs={dispatchLogs}
               onDeployRoute={handleDeployRoute}
               userLocation={userLocation}
- 
-              selectedCity={selectedCity}
-              onSelectCity={setSelectedCity}
  
               selectedCity={selectedCity}
               onSelectCity={setSelectedCity}
