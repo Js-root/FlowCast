@@ -1,7 +1,6 @@
 import dotenv from "dotenv";
 dotenv.config({ path: ".env.local" });
 dotenv.config();
-
 import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
@@ -87,6 +86,131 @@ Format your response as clean JSON with these keys:
   }
 });
 
+// Live Data Telemetry Route (TomTom Integration)
+app.post("/api/live-data", async (req, res) => {
+  try {
+    const { nodes } = req.body;
+    if (!nodes || !Array.isArray(nodes)) {
+      return res.status(400).json({ success: false, error: "Nodes array is required" });
+    }
+
+    const tomtomKey = process.env.TOMTOM_API_KEY;
+    let updatedNodes = [...nodes];
+
+    let liveIncidents: any[] | null = null;
+    if (tomtomKey && tomtomKey !== "YOUR_TOMTOM_API_KEY") {
+      // 1. Fetch real data from TomTom API
+      const fetchPromises = updatedNodes.map(async (node) => {
+        try {
+          const url = `https://api.tomtom.com/traffic/services/4/flowSegmentData/absolute/10/json?key=${tomtomKey}&point=${node.lat},${node.lng}`;
+          const response = await fetch(url);
+          const data = await response.json();
+          if (data && data.flowSegmentData) {
+            const flow = data.flowSegmentData;
+            // Update node with real TomTom speeds
+            node.avgSpeedKmh = flow.currentSpeed || node.avgSpeedKmh;
+            
+            // Calculate delay based on freeFlowSpeed
+            const delay = Math.max(0, (flow.freeFlowTravelTime || 0) - (flow.currentTravelTime || 0));
+            node.delayMinutes = Math.round(delay / 60);
+
+            // Re-calculate status
+            const speedRatio = node.avgSpeedKmh / (flow.freeFlowSpeed || 40);
+            if (speedRatio > 0.7) node.status = 'clear';
+            else if (speedRatio > 0.4) node.status = 'moderate';
+            else if (speedRatio > 0.2) node.status = 'heavy';
+            else node.status = 'severe';
+          }
+        } catch (err) {
+          console.error(`Failed to fetch TomTom data for node ${node.id}:`, err);
+        }
+        return node;
+      });
+
+      updatedNodes = await Promise.all(fetchPromises);
+
+      // Fetch Live Incidents
+      try {
+        const bbox = "77.0,28.4,77.4,28.9"; // Delhi bounds
+        const incidentUrl = `https://api.tomtom.com/traffic/services/5/incidentDetails/json?key=${tomtomKey}&bbox=${bbox}&fields={incidents{geometry{coordinates},properties{id,iconCategory,magnitudeOfDelay,events{description},from,to,length,delay}}}`;
+        const incRes = await fetch(incidentUrl);
+        const incData = await incRes.json();
+        
+        if (incData && incData.incidents) {
+          liveIncidents = incData.incidents.map((inc: any) => {
+            const props = inc.properties || {};
+            let lat = 28.6139;
+            let lng = 77.2090;
+            if (inc.geometry && inc.geometry.coordinates && inc.geometry.coordinates.length > 0) {
+                const firstCoord = inc.geometry.coordinates[0];
+                if (Array.isArray(firstCoord)) {
+                    lng = firstCoord[0];
+                    lat = firstCoord[1];
+                } else {
+                    lng = inc.geometry.coordinates[0];
+                    lat = inc.geometry.coordinates[1];
+                }
+            }
+
+            let severity = 'moderate';
+            if (props.magnitudeOfDelay === 3 || props.magnitudeOfDelay === 4) severity = 'severe';
+            else if (props.magnitudeOfDelay === 1 || props.magnitudeOfDelay === 0) severity = 'low';
+            
+            let category = 'signal_failure';
+            if (props.iconCategory === 6) category = 'collision';
+            else if (props.iconCategory === 8 || props.iconCategory === 9) category = 'construction';
+
+            return {
+              id: props.id || Math.random().toString(),
+              title: props.events?.[0]?.description || 'Live Traffic Incident',
+              area: props.from ? `${props.from}${props.to ? ` to ${props.to}` : ''}` : 'Delhi NCR Area',
+              severity,
+              category,
+              delayMinutes: Math.round((props.delay || 0) / 60),
+              startsInMinutes: 0,
+              confidencePercent: 99,
+              socialSource: 'TomTom Live',
+              description: props.events?.[0]?.description ? `TomTom reports: ${props.events[0].description}. Impact length: ${props.length || 0}m.` : 'Live incident detected by TomTom sensor network.',
+              lat,
+              lng,
+              cascadingRoads: props.to ? [props.to] : []
+            };
+          }).filter((i: any) => i.severity !== 'low').slice(0, 15);
+        }
+      } catch (err) {
+        console.error("Failed to fetch TomTom incidents:", err);
+      }
+    } else {
+      // 2. Fallback Jitter Simulation if key is missing
+      updatedNodes = updatedNodes.map((node) => {
+        // Randomly fluctuate speed by -3 to +3 km/h
+        const speedJitter = Math.floor(Math.random() * 7) - 3;
+        let newSpeed = Math.max(5, node.avgSpeedKmh + speedJitter);
+        
+        // Slightly fluctuate delay
+        const delayJitter = Math.floor(Math.random() * 5) - 2;
+        let newDelay = Math.max(0, node.delayMinutes + delayJitter);
+
+        let newStatus = node.status;
+        if (newSpeed < 15) newStatus = 'severe';
+        else if (newSpeed < 25) newStatus = 'heavy';
+        else if (newSpeed < 35) newStatus = 'moderate';
+        else newStatus = 'clear';
+
+        return { ...node, avgSpeedKmh: newSpeed, delayMinutes: newDelay, status: newStatus };
+      });
+    }
+
+    return res.json({ success: true, nodes: updatedNodes, incidents: liveIncidents });
+  } catch (error: any) {
+    console.error("Error in /api/live-data:", error);
+    return res.status(500).json({
+      success: false,
+      error: error?.message || "Failed to fetch live data"
+    });
+  }
+});
+
 // Route Optimization & Disruption Analysis Route
 app.post("/api/route-analyze", async (req, res) => {
   try {
@@ -108,8 +232,51 @@ app.post("/api/route-analyze", async (req, res) => {
       });
     }
 
+    const tomtomKey = process.env.TOMTOM_API_KEY;
+    let realTimeData = "";
+
+    if (tomtomKey && tomtomKey !== "YOUR_TOMTOM_API_KEY") {
+      try {
+        // Geocode origin
+        const originGeoUrl = `https://api.tomtom.com/search/2/geocode/${encodeURIComponent(origin)}.json?key=${tomtomKey}&limit=1`;
+        const originRes = await fetch(originGeoUrl);
+        const originData = await originRes.json();
+        
+        // Geocode destination
+        const destGeoUrl = `https://api.tomtom.com/search/2/geocode/${encodeURIComponent(destination)}.json?key=${tomtomKey}&limit=1`;
+        const destRes = await fetch(destGeoUrl);
+        const destData = await destRes.json();
+
+        if (originData.results?.[0]?.position && destData.results?.[0]?.position) {
+          const oPos = originData.results[0].position;
+          const dPos = destData.results[0].position;
+          
+          // Calculate Route
+          const routeUrl = `https://api.tomtom.com/routing/1/calculateRoute/${oPos.lat},${oPos.lon}:${dPos.lat},${dPos.lon}/json?key=${tomtomKey}&traffic=true&computeTravelTimeFor=all`;
+          const routeRes = await fetch(routeUrl);
+          const routeData = await routeRes.json();
+
+          if (routeData.routes && routeData.routes[0]) {
+            const summary = routeData.routes[0].summary;
+            const standardDuration = summary.noTrafficTravelTimeInSeconds / 60;
+            const trafficDuration = summary.travelTimeInSeconds / 60;
+            const delay = summary.trafficDelayInSeconds / 60;
+            
+            realTimeData = `\nREAL-TIME TOMTOM TELEMETRY:
+- Standard Travel Time: ${Math.round(standardDuration)} mins
+- Current Travel Time in Traffic: ${Math.round(trafficDuration)} mins
+- Current Delay: ${Math.round(delay)} mins
+Based on this real-world standard delay, your job is to predict how much WORSE the delay will get in the next ${timeHorizonMins || 30} minutes due to cascading bottlenecks, and recommend a detour.`;
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch TomTom Directions:", err);
+      }
+    }
+
     const prompt = `Analyze route options between "${origin}" and "${destination}" in Delhi NCR for a commuter traveling in ${timeHorizonMins || 30} minutes.
 Consider Delhi's key arterial roads, Ring Road bottlenecks, flyover chokepoints, and waterlogging/rally risks.
+${realTimeData}
 
 Respond in JSON format with:
 - origin: string
@@ -170,7 +337,17 @@ app.get("/api/live-traffic", async (_req, res) => {
           const delay = Math.max(0, Math.round(((f?.currentTravelTime || 0) - (f?.freeFlowTravelTime || 0)) / 60));
           return { ...n, status, avgSpeedKmh: Math.round(cur), delayMinutes: delay };
         } catch {
-          return n; // per-node fallback to seed
+          // per-node fallback to seed with simulation jitter
+          const speedJitter = Math.floor(Math.random() * 7) - 3;
+          let newSpeed = Math.max(5, n.avgSpeedKmh + speedJitter);
+          const delayJitter = Math.floor(Math.random() * 5) - 2;
+          let newDelay = Math.max(0, n.delayMinutes + delayJitter);
+          let newStatus = n.status;
+          if (newSpeed < 15) newStatus = 'severe';
+          else if (newSpeed < 25) newStatus = 'heavy';
+          else if (newSpeed < 35) newStatus = 'moderate';
+          else newStatus = 'clear';
+          return { ...n, status: newStatus, avgSpeedKmh: newSpeed, delayMinutes: newDelay };
         }
       })
     );
