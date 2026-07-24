@@ -72,6 +72,17 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [aiLoadingStep, setAiLoadingStep] = useState<string>('');
   const [hasApiKey, setHasApiKey] = useState<boolean | null>(null);
+  const [currentTime, setCurrentTime] = useState('');
+
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      setCurrentTime(now.toLocaleTimeString('en-IN', { hour12: false, hour: '2-digit', minute: '2-digit' }) + ' IST');
+    };
+    updateTime();
+    const int = setInterval(updateTime, 60000);
+    return () => clearInterval(int);
+  }, []);
   const [aiReport, setAiReport] = useState<{
     summary?: string;
     criticalHotspots?: string[];
@@ -157,7 +168,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <div className="w-2.5 h-2.5 bg-[#1A1A1A]" />
             <div className="w-2.5 h-2.5 bg-[#1A1A1A]/30" />
             <span className="text-xs font-bold text-[#1A1A1A] ml-2 hidden sm:inline-block tracking-wider uppercase">
-              FLOWCAST // COMMAND CENTER V3.4
+              FLOWCAST // COMMAND CENTER V0.1
             </span>
           </div>
 
@@ -168,11 +179,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </span>
             <div className="flex items-center gap-1 font-bold text-[#1A1A1A]">
               <Clock className="w-3.5 h-3.5" />
-              <span>15:34 IST</span>
-            </div>
-            <div className="hidden lg:flex items-center gap-1 bg-white px-2.5 py-1 border border-[#1A1A1A]/15 text-[#1A1A1A]/70">
-              <Search className="w-3 h-3 text-[#1A1A1A]" />
-              <span>Search Grid...</span>
+              <span>{currentTime}</span>
             </div>
           </div>
         </div>
@@ -243,38 +250,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
               </div>
             </div>
 
-            {/* Camera Feeds Preview */}
-            <div className="space-y-2 pt-2 border-t border-[#1A1A1A]/10">
-              <div className="flex items-center justify-between text-xs font-bold text-[#1A1A1A] uppercase font-mono">
-                <span className="flex items-center gap-1.5">
-                  <Camera className="w-3.5 h-3.5 text-[#D93B2D]" />
-                  <span>Junction Optics</span>
-                </span>
-                <span className="text-[10px] text-[#1A1A1A]/50 font-sans">Inspect</span>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                {cameras.slice(0, 2).map((cam) => (
-                  <div
-                    key={cam.id}
-                    onClick={() => setActiveCameraModal(cam)}
-                    className="relative group border border-[#1A1A1A]/20 cursor-pointer aspect-video bg-[#1A1A1A] overflow-hidden"
-                  >
-                    <img
-                      src={cam.snapshotUrl}
-                      alt={cam.junctionName}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 opacity-80"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent p-1.5 flex flex-col justify-between">
-                      <span className="text-[9px] font-mono font-bold text-white bg-[#D93B2D] px-1.5 py-0.2 w-fit">
-                        ● LIVE
-                      </span>
-                      <span className="text-[10px] font-bold text-white truncate font-sans">{cam.junctionName}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
           </div>
 
           {/* Center Map View & Live Floating Prediction Overlay */}
