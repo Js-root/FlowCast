@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Incident, TrafficNode, CameraFeed, SocialSignal, RouteOption } from '../types';
 import { InteractiveMap } from './InteractiveMap';
+import { verifyIncident, Verification } from '../lib/verify';
 import {
   AlertTriangle,
   Clock,
@@ -13,6 +14,17 @@ import {
   Search,
   ChevronRight
 } from 'lucide-react';
+
+const VerifyBadge: React.FC<{ v: Verification }> = ({ v }) =>
+  v === 'confirmed' ? (
+    <span className="text-[9px] font-mono font-bold uppercase bg-emerald-700 text-white px-1.5 py-0.5 whitespace-nowrap">
+      ✓ Confirmed
+    </span>
+  ) : (
+    <span className="text-[9px] font-mono font-bold uppercase bg-yellow-500 text-[#1A1A1A] px-1.5 py-0.5 whitespace-nowrap">
+      ⚠ Unverified
+    </span>
+  );
 
 interface DashboardProps {
   nodes: TrafficNode[];
@@ -46,6 +58,16 @@ export const Dashboard: React.FC<DashboardProps> = ({
   } | null>(null);
 
   const selectedIncident = incidents.find((i) => i.id === selectedIncidentId) || incidents[0];
+
+  // Cross-validation gate: 1 signal = Unverified (yellow), >=2 or GPS drop = Confirmed (red).
+  const verifications = useMemo(
+    () =>
+      Object.fromEntries(incidents.map((i) => [i.id, verifyIncident(i, socialSignals, nodes)])) as Record<
+        string,
+        Verification
+      >,
+    [incidents, socialSignals, nodes],
+  );
 
   // Request AI Forecast from Backend
   const handleFetchAiForecast = async () => {
@@ -207,6 +229,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 selectedNodeId={selectedNodeId}
                 onSelectNode={(id) => setSelectedNodeId(id)}
                 forecastMinutesAhead={forecastMinutes}
+                verifications={verifications}
               />
 
               {/* Editorial Floating Overlay Badge */}
@@ -214,6 +237,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 <div className="text-[11px] font-mono font-bold text-[#D93B2D] uppercase tracking-widest flex items-center gap-2">
                   <span className="w-2.5 h-2.5 bg-[#D93B2D] animate-pulse-badge" />
                   <span>PREDICTIVE ALERT</span>
+                  {selectedIncident && <span className="ml-auto"><VerifyBadge v={verifications[selectedIncident.id]} /></span>}
                 </div>
                 <div className="text-lg md:text-xl font-serif font-bold text-[#1A1A1A] tracking-tight leading-tight">
                   {selectedIncident ? selectedIncident.title : 'Severe Congestion'}
@@ -326,7 +350,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         </span>
                       </div>
                       <div className="text-[11px] text-[#1A1A1A]/60 flex items-center justify-between font-sans">
-                        <span>{inc.area}</span>
+                        <span className="flex items-center gap-1.5">
+                          <VerifyBadge v={verifications[inc.id]} />
+                          {inc.area}
+                        </span>
                         <span className="text-[#D93B2D] font-mono text-[10px] font-bold">Starts in {inc.startsInMinutes}m</span>
                       </div>
                     </div>
