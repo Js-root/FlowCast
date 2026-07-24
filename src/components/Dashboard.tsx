@@ -33,6 +33,9 @@ interface DashboardProps {
   dispatchLogs: DispatchLogEntry[];
   onDeployRoute: (route: RouteOption) => void;
 
+  selectedCity: string;
+  onSelectCity: (city: string) => void;
+
   onOpenDemoModal: () => void;
   onNavigateToRoutePlanner: () => void;
   onTriggerFakeNews?: () => void;
@@ -57,6 +60,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
   availableRoutes,
   dispatchLogs,
   onDeployRoute,
+
+  selectedCity,
+  onSelectCity,
 
   onOpenDemoModal,
   onNavigateToRoutePlanner,
@@ -302,6 +308,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 forecastMinutesAhead={forecastMinutes}
                 detourPositions={selectedRoute?.polylinePositions}
                 selectedRouteIsAiRecommended={selectedRoute?.isAiRecommended}
+                selectedCity={selectedCity}
               />
 
               {/* Editorial Floating Overlay Badge */}
