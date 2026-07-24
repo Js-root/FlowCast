@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavTab, TrafficNode, Incident, SocialSignal, RouteOption } from './types';
 import { INITIAL_NODES, INITIAL_INCIDENTS, INITIAL_SOCIAL_SIGNALS, CAMERA_FEEDS, PRESET_ROUTES } from './data/delhiTrafficData';
 import { Header } from './components/Header';
@@ -18,6 +18,30 @@ export default function App() {
   const [socialSignals, setSocialSignals] = useState<SocialSignal[]>(INITIAL_SOCIAL_SIGNALS);
   const [routes, setRoutes] = useState<RouteOption[]>(PRESET_ROUTES);
   const [demoModalOpen, setDemoModalOpen] = useState(false);
+
+  useEffect(() => {
+    const fetchLiveData = async () => {
+      try {
+        const res = await fetch('/api/live-data', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nodes })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.nodes) setNodes(data.nodes);
+          if (data.incidents) setIncidents(data.incidents);
+        }
+      } catch (err) {
+        console.error('Failed to fetch live data:', err);
+      }
+    };
+
+    const interval = setInterval(fetchLiveData, 30000);
+    // Fetch once immediately on mount
+    fetchLiveData();
+    return () => clearInterval(interval);
+  }, [nodes]);
 
   // Trigger scenario handler
   const handleTriggerIncident = (newInc: Incident) => {
