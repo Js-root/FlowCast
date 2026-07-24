@@ -1,0 +1,6 @@
+{
+  "name": "FlowCast",
+  "description": "Predictive traffic disruption forecasting and AI-optimized route planning for Delhi NCR.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
