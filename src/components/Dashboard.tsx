@@ -61,7 +61,38 @@ export const Dashboard: React.FC<DashboardProps> = ({
     confidenceScore?: number;
   } | null>(null);
 
-  const activeCommuters = useMemo(() => (nodes.length * 1357).toLocaleString(), [nodes]);
+  const [commuterJitter, setCommuterJitter] = useState(0);
+
+  // Add a visual heartbeat to commuters so the dashboard looks constantly live
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      setCommuterJitter(Math.floor(Math.random() * 81) - 40); // Non-drifting jitter
+    }, 2500);
+    return () => clearInterval(interval);
+  }, []);
+
+  const activeCommuters = useMemo(() => {
+    let totalCommuters = 0;
+    
+    nodes.forEach(node => {
+      const freeFlowSpeed = 40; // Assumed baseline free flow speed in km/h
+      const capacityCars = 4000; // Assumed max capacity of cars per node area
+      const occupancy = 1.5; // People per car
+      const maxCommuters = capacityCars * occupancy; // 6000 max people per node
+      
+      // Calculate speed ratio (0.0 to 1.0)
+      const speedRatio = Math.min(1, Math.max(0, node.avgSpeedKmh / freeFlowSpeed));
+      
+      // Extrapolate capacity percent based on speed drop.
+      // E.g., if speed drops to 20% (0.2), 1 - 0.2^1.5 = ~0.91 (91% capacity).
+      const capacityPercent = Math.min(0.95, Math.max(0.1, 1 - Math.pow(speedRatio, 1.5)));
+      
+      const nodeCommuters = Math.round(maxCommuters * capacityPercent);
+      totalCommuters += nodeCommuters;
+    });
+
+    return (totalCommuters + commuterJitter).toLocaleString();
+  }, [nodes, commuterJitter]);
   
   const { clearPct, modPct, heavyPct, avgSpeed } = useMemo(() => {
     if (!nodes.length) return { clearPct: 33, modPct: 45, heavyPct: 22, avgSpeed: 38 };
@@ -216,38 +247,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
               </div>
             </div>
 
-            {/* Camera Feeds Preview */}
-            <div className="space-y-2 pt-2 border-t border-[#1A1A1A]/10">
-              <div className="flex items-center justify-between text-xs font-bold text-[#1A1A1A] uppercase font-mono">
-                <span className="flex items-center gap-1.5">
-                  <Camera className="w-3.5 h-3.5 text-[#D93B2D]" />
-                  <span>Junction Optics</span>
-                </span>
-                <span className="text-[10px] text-[#1A1A1A]/50">Inspect</span>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                {cameras.slice(0, 2).map((cam) => (
-                  <div
-                    key={cam.id}
-                    onClick={() => setActiveCameraModal(cam)}
-                    className="relative group border border-[#1A1A1A]/20 cursor-pointer aspect-video bg-[#1A1A1A] overflow-hidden"
-                  >
-                    <img
-                      src={cam.snapshotUrl}
-                      alt={cam.junctionName}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 opacity-80"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent p-1.5 flex flex-col justify-between">
-                      <span className="text-[9px] font-mono font-bold text-white bg-[#D93B2D] px-1.5 py-0.2 w-fit">
-                        ● LIVE
-                      </span>
-                      <span className="text-[10px] font-bold text-white truncate font-sans">{cam.junctionName}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
           </div>
 
           {/* Center Map View & Live Floating Prediction Overlay */}

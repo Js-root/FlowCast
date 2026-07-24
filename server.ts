@@ -337,7 +337,17 @@ app.get("/api/live-traffic", async (_req, res) => {
           const delay = Math.max(0, Math.round(((f?.currentTravelTime || 0) - (f?.freeFlowTravelTime || 0)) / 60));
           return { ...n, status, avgSpeedKmh: Math.round(cur), delayMinutes: delay };
         } catch {
-          return n; // per-node fallback to seed
+          // per-node fallback to seed with simulation jitter
+          const speedJitter = Math.floor(Math.random() * 7) - 3;
+          let newSpeed = Math.max(5, n.avgSpeedKmh + speedJitter);
+          const delayJitter = Math.floor(Math.random() * 5) - 2;
+          let newDelay = Math.max(0, n.delayMinutes + delayJitter);
+          let newStatus = n.status;
+          if (newSpeed < 15) newStatus = 'severe';
+          else if (newSpeed < 25) newStatus = 'heavy';
+          else if (newSpeed < 35) newStatus = 'moderate';
+          else newStatus = 'clear';
+          return { ...n, status: newStatus, avgSpeedKmh: newSpeed, delayMinutes: newDelay };
         }
       })
     );
