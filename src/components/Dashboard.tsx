@@ -79,6 +79,26 @@ export const Dashboard: React.FC<DashboardProps> = ({
     confidenceScore?: number;
   } | null>(null);
 
+  // Dynamic metrics calculations
+  const clearCount = nodes.filter(n => n.status === 'clear' || n.status === 'moderate').length;
+  const heavyCount = nodes.filter(n => n.status === 'severe').length;
+  const modCount = nodes.filter(n => n.status === 'heavy').length;
+  
+  const totalNodes = nodes.length || 1;
+  const clearPct = Math.round((clearCount / totalNodes) * 100);
+  const heavyPct = Math.round((heavyCount / totalNodes) * 100);
+  const modPct = 100 - clearPct - heavyPct;
+
+  const avgSpeed = Math.round(nodes.reduce((sum, n) => sum + n.avgSpeedKmh, 0) / totalNodes);
+  const speedDiff = (avgSpeed - 35.6).toFixed(1);
+  const isSpeedBetter = parseFloat(speedDiff) >= 0;
+  const speedDiffText = isSpeedBetter ? `+${speedDiff} km/h vs avg` : `${speedDiff} km/h vs avg`;
+  const speedDiffColor = isSpeedBetter ? 'text-emerald-700' : 'text-[#D93B2D]';
+
+  const totalIncidents = incidents.length;
+  const severeIncidentsCount = incidents.filter(inc => inc.severity === 'severe').length;
+  const deviationPct = Math.round((heavyCount / totalNodes) * 45);
+
   useEffect(() => {
     fetch('/api/health')
       .then(res => res.json())
@@ -183,14 +203,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
             {/* Congestion Split Progress Bar */}
             <div className="space-y-2 pt-1 border-t border-[#1A1A1A]/10">
               <div className="flex justify-between text-xs font-mono font-bold">
-                <span className="text-[#1A1A1A]">Mod: 45%</span>
-                <span className="text-emerald-700">Clear: 33%</span>
-                <span className="text-[#D93B2D]">Heavy: 22%</span>
+                <span className="text-[#1A1A1A]">Mod: {modPct}%</span>
+                <span className="text-emerald-700">Clear: {clearPct}%</span>
+                <span className="text-[#D93B2D]">Heavy: {heavyPct}%</span>
               </div>
               <div className="h-2 w-full bg-[#1A1A1A]/10 overflow-hidden flex">
-                <div className="bg-[#1A1A1A] h-full" style={{ width: '45%' }} />
-                <div className="bg-emerald-600 h-full" style={{ width: '33%' }} />
-                <div className="bg-[#D93B2D] h-full" style={{ width: '22%' }} />
+                <div className="bg-[#1A1A1A] h-full" style={{ width: `${modPct}%` }} />
+                <div className="bg-emerald-600 h-full" style={{ width: `${clearPct}%` }} />
+                <div className="bg-[#D93B2D] h-full" style={{ width: `${heavyPct}%` }} />
               </div>
             </div>
 
@@ -198,22 +218,22 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
               <div className="bg-[#F2F0EB] p-3 border border-[#1A1A1A]/10">
                 <div className="text-[10px] text-[#1A1A1A]/60 font-mono font-bold uppercase tracking-wider">Avg Speed</div>
-                <div className="text-xl font-serif font-bold text-[#1A1A1A] mt-0.5">38 km/h</div>
-                <div className="text-[10px] text-emerald-700 font-mono mt-1 font-semibold">
-                  +2.4 km/h vs avg
+                <div className="text-xl font-serif font-bold text-[#1A1A1A] mt-0.5">{avgSpeed} km/h</div>
+                <div className={`text-[10px] ${speedDiffColor} font-mono mt-1 font-semibold`}>
+                  {speedDiffText}
                 </div>
               </div>
 
               <div className="bg-[#F2F0EB] p-3 border border-[#1A1A1A]/10">
                 <div className="text-[10px] text-[#1A1A1A]/60 font-mono font-bold uppercase tracking-wider">Deviation</div>
-                <div className="text-xl font-serif font-bold text-[#D93B2D] mt-0.5">+14%</div>
+                <div className="text-xl font-serif font-bold text-[#D93B2D] mt-0.5">+{deviationPct}%</div>
                 <div className="text-[10px] text-[#D93B2D]/80 font-mono mt-1 font-semibold">Peak hour delay</div>
               </div>
 
               <div className="bg-[#F2F0EB] p-3 border border-[#1A1A1A]/10">
                 <div className="text-[10px] text-[#1A1A1A]/60 font-mono font-bold uppercase tracking-wider">Incidents</div>
-                <div className="text-xl font-serif font-bold text-[#D93B2D] mt-0.5">18 Active</div>
-                <div className="text-[10px] text-[#D93B2D]/80 font-mono mt-1 font-semibold">5 High Severity</div>
+                <div className="text-xl font-serif font-bold text-[#D93B2D] mt-0.5">{totalIncidents} Active</div>
+                <div className="text-[10px] text-[#D93B2D]/80 font-mono mt-1 font-semibold">{severeIncidentsCount} High Severity</div>
               </div>
 
               <div className="bg-[#F2F0EB] p-3 border border-[#1A1A1A]/10">
