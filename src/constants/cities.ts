@@ -3,12 +3,13 @@ export interface CityConfig {
   name: string;
   center: [number, number];
   bbox: string;
+  bounds: [[number, number], [number, number]];
   nodes: {
     id: string;
     name: string;
     lat: number;
     lng: number;
-    x: number; // Percentages on old canvas if fallback is used
+    x: number;
     y: number;
   }[];
 }
@@ -19,6 +20,10 @@ export const CITIES: Record<string, CityConfig> = {
     name: 'Delhi NCR',
     center: [28.6139, 77.2090],
     bbox: '77.0,28.4,77.4,28.8',
+    bounds: [
+      [28.20, 76.80],
+      [28.95, 77.65]
+    ],
     nodes: [
       { id: 'node-cp', name: 'Connaught Place', lat: 28.6315, lng: 77.2167, x: 48, y: 38 },
       { id: 'node-ring', name: 'Ring Road (Moti Bagh)', lat: 28.5822, lng: 77.1685, x: 38, y: 52 },
@@ -39,6 +44,10 @@ export const CITIES: Record<string, CityConfig> = {
     name: 'Mumbai',
     center: [19.0760, 72.8777],
     bbox: '72.7,18.8,73.1,19.3',
+    bounds: [
+      [18.85, 72.60],
+      [19.35, 73.15]
+    ],
     nodes: [
       { id: 'node-mumbai-cst', name: 'CST Terminus', lat: 18.9400, lng: 72.8354, x: 45, y: 25 },
       { id: 'node-mumbai-bandra', name: 'Bandra Junction', lat: 19.0544, lng: 72.8402, x: 50, y: 45 },
@@ -57,6 +66,10 @@ export const CITIES: Record<string, CityConfig> = {
     name: 'Bengaluru',
     center: [12.9716, 77.5946],
     bbox: '77.4,12.8,77.8,13.2',
+    bounds: [
+      [12.80, 77.40],
+      [13.15, 77.80]
+    ],
     nodes: [
       { id: 'node-blr-silkboard', name: 'Silk Board Junction', lat: 12.9174, lng: 77.6228, x: 60, y: 75 },
       { id: 'node-blr-tinfactory', name: 'Tin Factory Bridge', lat: 13.0040, lng: 77.6750, x: 75, y: 35 },
