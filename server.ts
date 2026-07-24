@@ -81,9 +81,19 @@ app.get("/api/live-incidents", async (req, res) => {
     return res.json(cachedVal);
   }
 
+  // Parse bounding box dimensions to dynamically scale coordinates
+  const bboxParts = bbox.split(",");
+  const minLng = parseFloat(bboxParts[0]) || 77.0;
+  const minLat = parseFloat(bboxParts[1]) || 28.4;
+  const maxLng = parseFloat(bboxParts[2]) || 77.4;
+  const maxLat = parseFloat(bboxParts[3]) || 28.8;
+  const lngDiff = (maxLng - minLng) || 0.4;
+  const latDiff = (maxLat - minLat) || 0.4;
+
   const tomtomKey = process.env.TOMTOM_API_KEY;
   if (!tomtomKey) {
-    return res.status(400).json({ success: false, error: "TomTom API key not configured" });
+    console.log("[Incidents Service] TomTom API key missing. Triggering offline mock fallback.");
+    return res.json({ success: true, incidents: [] });
   }
 
   try {
@@ -92,7 +102,8 @@ app.get("/api/live-incidents", async (req, res) => {
     
     const response = await fetch(url);
     if (!response.ok) {
-      throw new Error(`TomTom Incidents response not ok: ${response.status}`);
+      console.warn(`[Incidents Service] TomTom API returned status ${response.status}. Falling back to offline mode.`);
+      return res.json({ success: true, incidents: [] });
     }
 
     const data = await response.json() as any;
@@ -100,8 +111,8 @@ app.get("/api/live-incidents", async (req, res) => {
     const mappedIncidents = (data.incidents || []).map((feat: any, index: number) => {
       const prop = feat.properties || {};
       const geom = feat.geometry || {};
-      const coords = geom.coordinates || [[77.2167, 28.6315]];
-      const firstCoord = coords[0] || [77.2167, 28.6315];
+      const coords = geom.coordinates || [[(minLng + maxLng) / 2, (minLat + maxLat) / 2]];
+      const firstCoord = coords[0] || [(minLng + maxLng) / 2, (minLat + maxLat) / 2];
       const lng = firstCoord[0];
       const lat = firstCoord[1];
 
@@ -120,7 +131,7 @@ app.get("/api/live-incidents", async (req, res) => {
       const desc = prop.events?.[0]?.description || "Traffic Disruption";
       const fromRoad = prop.from || "";
       const toRoad = prop.to || "";
-      const area = fromRoad ? fromRoad : toRoad ? toRoad : "Delhi NCR Corridor";
+      const area = fromRoad ? fromRoad : toRoad ? toRoad : "Arterial Corridor";
 
       const title = fromRoad 
         ? `${desc} on ${fromRoad}`
@@ -128,8 +139,8 @@ app.get("/api/live-incidents", async (req, res) => {
 
       const delayMinutes = Math.max(1, Math.round((prop.delay || 0) / 60));
 
-      const xScaled = Math.max(0, Math.min(100, Math.round(((lng - 77.0) / 0.4) * 100)));
-      const yScaled = Math.max(0, Math.min(100, Math.round(((lat - 28.4) / 0.4) * 100)));
+      const xScaled = Math.max(0, Math.min(100, Math.round(((lng - minLng) / lngDiff) * 100)));
+      const yScaled = Math.max(0, Math.min(100, Math.round(((lat - minLat) / latDiff) * 100)));
       const sourcesCount = prop.aci?.numberOfReports || Math.floor(Math.random() * 8) + 8;
 
       return {
@@ -415,10 +426,16 @@ async function geocode(query: string, tomtomKey?: string, city?: string): Promis
   const coordsRegex = /^(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)$/;
   const coordsMatch = norm.match(coordsRegex);
   if (coordsMatch) {
-    const lat = parseFloat(coordsMatch[1]);
-    const lng = parseFloat(coordsMatch[2]);
+    let lat = parseFloat(coordsMatch[1]);
+    let lng = parseFloat(coordsMatch[2]);
     if (!isNaN(lat) && !isNaN(lng)) {
-      console.log(`[Coordinate Ingestion] Parsed coordinates directly: [${lat}, ${lng}]`);
+      // Safety check: if coordinates were entered in reverse (longitude first)
+      if (lat > 50 && lng < 50) {
+        const temp = lat;
+        lat = lng;
+        lng = temp;
+      }
+      console.log(`[Coordinate Ingestion] Parsed coordinates: [${lat}, ${lng}]`);
       return [lat, lng];
     }
   }
