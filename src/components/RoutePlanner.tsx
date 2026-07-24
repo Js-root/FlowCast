@@ -120,23 +120,25 @@ export const RoutePlanner: React.FC<RoutePlannerProps> = ({
       const start = center;
       const end = [center[0] + 0.02, center[1] + 0.02] as [number, number];
 
-      const latStep = (end[0] - start[0]) / 3;
-      const lngStep = (end[1] - start[1]) / 3;
-      
-      const standardPoints: [number, number][] = [
-        start,
-        [start[0] + latStep, start[1] + lngStep],
-        [start[0] + latStep * 2, start[1] + lngStep * 2],
-        end
-      ];
+      const generateWindingPath = (s: [number, number], e: [number, number], offsetDir: number = 1): [number, number][] => {
+        const points: [number, number][] = [];
+        const segments = 6;
+        points.push(s);
+        for (let i = 1; i < segments; i++) {
+          const ratio = i / segments;
+          const baseLat = s[0] + (e[0] - s[0]) * ratio;
+          const baseLng = s[1] + (e[1] - s[1]) * ratio;
+          const wave = Math.sin(ratio * Math.PI);
+          const latOffset = wave * 0.007 * offsetDir * (i % 2 === 0 ? 0.85 : 1.15);
+          const lngOffset = wave * 0.007 * -offsetDir * (i % 3 === 0 ? 1.15 : 0.85);
+          points.push([baseLat + latOffset, baseLng + lngOffset]);
+        }
+        points.push(e);
+        return points;
+      };
 
-      const aiPoints: [number, number][] = [
-        start,
-        [start[0] + latStep * 0.8 + 0.005, start[1] + lngStep * 0.8 - 0.005],
-        [start[0] + latStep * 1.6 + 0.008, start[1] + lngStep * 1.6 - 0.008],
-        [start[0] + latStep * 2.4 + 0.004, start[1] + lngStep * 2.4 - 0.004],
-        end
-      ];
+      const standardPoints = generateWindingPath(start, end, 0.35);
+      const aiPoints = generateWindingPath(start, end, 1.6);
 
       const fallbackData: RouteAnalysis = {
         standardRoute: {
