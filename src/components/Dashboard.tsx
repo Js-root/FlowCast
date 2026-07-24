@@ -5,6 +5,7 @@ import { InteractiveMap } from './InteractiveMap';
 import { IncidentDispatch } from './IncidentDispatch';
 import { RouteDetours } from './RouteDetours';
 import { DispatchLog } from './DispatchLog';
+import { CameraFeedSimulator } from './CameraFeedSimulator';
 import {
   Clock,
   Sparkles,
@@ -441,35 +442,28 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </div>
       </div>
 
-      {/* Camera Feed Modal */}
       {activeCameraModal && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#F2F0EB] border border-[#1A1A1A] max-w-lg w-full p-6 flex flex-col gap-4 shadow-2xl animate-zoom-in">
+        <div className="fixed inset-0 z-[300] bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[#F2F0EB] border border-[#1A1A1A] max-w-4xl w-full p-5 md:p-6 flex flex-col gap-4 shadow-2xl animate-zoom-in">
             <div className="flex items-center justify-between border-b border-[#1A1A1A]/20 pb-3">
               <div>
-                <h3 className="font-serif font-bold text-xl text-[#1A1A1A]">{activeCameraModal.junctionName}</h3>
+                <h3 className="font-serif font-bold text-lg md:text-xl text-[#1A1A1A]">{activeCameraModal.junctionName}</h3>
                 <p className="text-xs text-[#1A1A1A]/60 font-mono">{activeCameraModal.location}</p>
               </div>
               <button
                 onClick={() => setActiveCameraModal(null)}
-                className="text-[#1A1A1A] hover:bg-[#1A1A1A] hover:text-white font-bold px-2 py-1 cursor-pointer transition-colors"
+                className="text-[#1A1A1A] hover:bg-[#1A1A1A] hover:text-white font-bold px-2 py-1 cursor-pointer transition-colors border-none bg-transparent"
               >
                 ✕
               </button>
             </div>
 
-            <div className="relative overflow-hidden aspect-video border border-[#1A1A1A]">
-              <img src={activeCameraModal.snapshotUrl} alt="Camera view" className="w-full h-full object-cover" />
-              <div className="absolute top-2 left-2 bg-[#D93B2D] text-white px-2 py-1 text-[10px] font-mono font-bold">
-                ● LIVE FEED ({activeCameraModal.lastUpdated})
-              </div>
-              <div className="absolute bottom-2 right-2 bg-[#1A1A1A] text-white px-2.5 py-1 text-xs font-mono">
-                Speed: {activeCameraModal.avgSpeed} km/h
-              </div>
-            </div>
+            {/* Dynamic AI surveillance canvas and logs container */}
+            <CameraFeedSimulator camera={activeCameraModal} />
 
-            <div className="text-xs text-[#1A1A1A]/80 bg-white p-3 border border-[#1A1A1A]/15 font-mono">
-              ANPR Optics #8402 detecting velocity drops, vehicle tailbacks, and lane queue formation.
+            <div className="text-xs text-[#1A1A1A]/80 bg-white p-3 border border-[#1A1A1A]/15 font-mono flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span>CCTV Node ANPR #8402: Live flow analytics calibrated for {activeCameraModal.junctionName}.</span>
             </div>
           </div>
         </div>
