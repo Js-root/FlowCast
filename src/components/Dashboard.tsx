@@ -62,6 +62,17 @@ export const Dashboard: React.FC<DashboardProps> = ({
   } | null>(null);
 
   const [commuterJitter, setCommuterJitter] = useState(0);
+  const [currentTime, setCurrentTime] = useState('');
+
+  React.useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      setCurrentTime(now.toLocaleTimeString('en-IN', { hour12: false, hour: '2-digit', minute: '2-digit' }) + ' IST');
+    };
+    updateTime();
+    const int = setInterval(updateTime, 60000);
+    return () => clearInterval(int);
+  }, []);
 
   // Add a visual heartbeat to commuters so the dashboard looks constantly live
   React.useEffect(() => {
@@ -166,7 +177,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <div className="w-2.5 h-2.5 bg-[#1A1A1A]" />
             <div className="w-2.5 h-2.5 bg-[#1A1A1A]/30" />
             <span className="text-xs font-bold text-[#1A1A1A] ml-2 hidden sm:inline-block tracking-wider uppercase">
-              FLOWCAST // COMMAND CENTER V3.4
+              FLOWCAST // COMMAND CENTER V0.1
             </span>
           </div>
 
@@ -179,11 +190,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </span>
             <div className="flex items-center gap-1 font-bold text-[#1A1A1A]">
               <Clock className="w-3.5 h-3.5" />
-              <span>15:34 IST</span>
-            </div>
-            <div className="hidden lg:flex items-center gap-1 bg-white px-2.5 py-1 border border-[#1A1A1A]/15 text-[#1A1A1A]/70">
-              <Search className="w-3 h-3 text-[#1A1A1A]" />
-              <span>Search Grid...</span>
+              <span>{currentTime}</span>
             </div>
           </div>
         </div>
