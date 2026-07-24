@@ -35,6 +35,7 @@ interface DashboardProps {
   onOpenDemoModal: () => void;
   onNavigateToRoutePlanner: () => void;
   onCorroborate: (inc: Incident) => void;
+  dataLive: boolean;
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({
@@ -46,6 +47,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   onOpenDemoModal,
   onNavigateToRoutePlanner,
   onCorroborate,
+  dataLive,
 }) => {
   const [forecastMinutes, setForecastMinutes] = useState<number>(30);
   const [selectedIncidentId, setSelectedIncidentId] = useState<string | null>('inc-1');
@@ -111,9 +113,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </div>
 
           <div className="flex items-center gap-4 text-xs text-[#1A1A1A]/70">
-            <span className="hidden md:flex items-center gap-1.5 text-[#D93B2D] bg-[#D93B2D]/10 border border-[#D93B2D]/30 px-2.5 py-0.5 font-bold uppercase tracking-wider">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#D93B2D] animate-ping" />
-              SYSTEM OPERATIONAL
+            <span className={`hidden md:flex items-center gap-1.5 border px-2.5 py-0.5 font-bold uppercase tracking-wider ${
+              dataLive ? 'text-emerald-700 bg-emerald-600/10 border-emerald-600/30' : 'text-[#D97706] bg-[#D97706]/10 border-[#D97706]/30'
+            }`}>
+              <span className={`w-1.5 h-1.5 rounded-full animate-ping ${dataLive ? 'bg-emerald-600' : 'bg-[#D97706]'}`} />
+              {dataLive ? 'LIVE DATA' : 'SIMULATION'}
             </span>
             <div className="flex items-center gap-1 font-bold text-[#1A1A1A]">
               <Clock className="w-3.5 h-3.5" />

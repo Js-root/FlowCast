@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavTab, TrafficNode, Incident, SocialSignal, RouteOption } from './types';
 import { INITIAL_NODES, INITIAL_INCIDENTS, INITIAL_SOCIAL_SIGNALS, CAMERA_FEEDS, PRESET_ROUTES } from './data/delhiTrafficData';
 import { Header } from './components/Header';
@@ -18,6 +18,38 @@ export default function App() {
   const [socialSignals, setSocialSignals] = useState<SocialSignal[]>(INITIAL_SOCIAL_SIGNALS);
   const [routes, setRoutes] = useState<RouteOption[]>(PRESET_ROUTES);
   const [demoModalOpen, setDemoModalOpen] = useState(false);
+  const [dataLive, setDataLive] = useState(false);
+
+  // Pull real data: TomTom traffic on nodes + Reddit/Groq incidents. Polls every 60s.
+  // Silently keeps seed data if keys are missing or a fetch fails (demo stays alive).
+  // ponytail: 60s poll x 12 nodes fits TomTom free tier for a demo; widen if it 429s.
+  useEffect(() => {
+    let alive = true;
+    const pull = async () => {
+      const [t, i] = await Promise.all([
+        fetch('/api/live-traffic').then((r) => r.json()).catch(() => null),
+        fetch('/api/live-incidents').then((r) => r.json()).catch(() => null),
+      ]);
+      if (!alive) return;
+      let live = false;
+      if (t?.success && t.live && Array.isArray(t.nodes) && t.nodes.length) {
+        setNodes(t.nodes);
+        live = true;
+      }
+      if (i?.success) {
+        if (Array.isArray(i.incidents) && i.incidents.length) setIncidents(i.incidents);
+        if (Array.isArray(i.signals) && i.signals.length) setSocialSignals(i.signals);
+        if (i.live) live = true;
+      }
+      setDataLive(live);
+    };
+    pull();
+    const id = setInterval(pull, 60000);
+    return () => {
+      alive = false;
+      clearInterval(id);
+    };
+  }, []);
 
   // Trigger scenario handler. opts.fake = unverified rumor: add a lone low-reliability
   // signal, no node/route change, so the cross-validation gate keeps it yellow.
@@ -117,6 +149,7 @@ export default function App() {
               onOpenDemoModal={() => setDemoModalOpen(true)}
               onNavigateToRoutePlanner={() => setActiveTab('route-planner')}
               onCorroborate={handleCorroborate}
+              dataLive={dataLive}
             />
             <FeatureGrid />
           </>
