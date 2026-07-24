@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { TrafficNode, Incident } from '../types';
 import { AlertTriangle, Zap, Layers } from 'lucide-react';
-import { MapContainer, TileLayer, CircleMarker, Polyline, Popup, LayerGroup, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, CircleMarker, Circle, Polyline, Popup, LayerGroup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Circle as LeafletCircle } from 'leaflet';
 
@@ -104,10 +104,10 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
               const opacity = 0.12 + (forecastMinutesAhead / 30) * 0.12;
               const color = severityToColor(inc.severity);
               return (
-                <CircleMarker
+                <Circle
                   key={`heatmap-${inc.id}`}
                   center={[inc.lat, inc.lng]}
-                  radius={baseRad / 10}
+                  radius={baseRad}
                   pathOptions={{
                     fillColor: color,
                     fillOpacity: opacity,

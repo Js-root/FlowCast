@@ -296,7 +296,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 <div className="text-xs text-[#1A1A1A]/80 flex items-center gap-1.5 font-medium font-sans">
                   <Clock className="w-3.5 h-3.5 text-[#D93B2D]" />
                   <span>
-                    Cascade starts in <span className="text-[#D93B2D] font-mono font-bold">{selectedIncident ? calculateStartsInMinutes(selectedIncident.startsInMinutes, forecastMinutes) : 24} mins</span>
+                    {selectedIncident && calculateStartsInMinutes(selectedIncident.startsInMinutes, forecastMinutes) === 0 ? (
+                      <span className="text-[#D93B2D] font-mono font-bold uppercase tracking-wider">Disruption Active</span>
+                    ) : (
+                      <>
+                        Cascade starts in <span className="text-[#D93B2D] font-mono font-bold">{selectedIncident ? calculateStartsInMinutes(selectedIncident.startsInMinutes, forecastMinutes) : 24} mins</span>
+                      </>
+                    )}
                   </span>
                 </div>
                 
