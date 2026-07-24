@@ -190,6 +190,49 @@ export default function App() {
     }, 6000);
   };
 
+  const handleReportHinglish = async (text: string) => {
+    triggerToast("Hinglish NLP: Extracting location and disruption details...");
+    try {
+      const res = await fetch('/api/parse-hinglish', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text }),
+      });
+      const data = await res.json();
+      if (data.success && data.incident) {
+        const inc = data.incident;
+        setIncidents((prev) => [inc, ...prev]);
+        setSelectedIncidentId(inc.id);
+
+        const now = new Date();
+        const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+        
+        setDispatchLogs((prev) => [
+          {
+            id: `log-hinglish-${Date.now()}`,
+            time: timeStr,
+            title: 'Hinglish AI Ingested',
+            details: `Parsed location: "${inc.area}" | ${inc.description}`,
+            type: 'alert'
+          },
+          ...prev
+        ]);
+        
+        triggerToast(`✓ AI Ingested: ${inc.title}`);
+        
+        if ('speechSynthesis' in window) {
+          window.speechSynthesis.cancel();
+          const utterance = new SpeechSynthesisUtterance(`Disruption report ingested. ${inc.title}. estimated delay: ${inc.delayMinutes} minutes.`);
+          utterance.rate = 0.95;
+          window.speechSynthesis.speak(utterance);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      triggerToast("⚠️ Hinglish parsing failed.");
+    }
+  };
+
   // Dispatch selected AI Route
   const handleDeployRoute = (route: RouteOption) => {
     const now = new Date();
@@ -449,13 +492,14 @@ export default function App() {
               availableRoutes={currentRoutes}
               dispatchLogs={dispatchLogs}
               onDeployRoute={handleDeployRoute}
-
+ 
               onOpenDemoModal={() => setDemoModalOpen(true)}
               onNavigateToRoutePlanner={() => setActiveTab('route-planner')}
               onTriggerFakeNews={handleTriggerFakeNews}
               activeRouteAnalysis={activeRouteAnalysis}
               onClearRouteAnalysis={() => setActiveRouteAnalysis(null)}
               onReloadIncidents={handleReloadLiveIncidents}
+              onReportHinglish={handleReportHinglish}
             />
             <FeatureGrid />
           </>

@@ -39,6 +39,7 @@ interface DashboardProps {
   activeRouteAnalysis: RouteAnalysis | null;
   onClearRouteAnalysis: () => void;
   onReloadIncidents?: () => void;
+  onReportHinglish?: (text: string) => Promise<void>;
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({
@@ -63,6 +64,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   activeRouteAnalysis,
   onClearRouteAnalysis,
   onReloadIncidents,
+  onReportHinglish,
 }) => {
   const [forecastMinutes, setForecastMinutes] = useState<number>(30);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>('node-cp');
@@ -432,6 +434,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               onSelectIncident={onSelectIncidentId}
               forecastMinutes={forecastMinutes}
               onReloadIncidents={onReloadIncidents}
+              onReportHinglish={onReportHinglish}
             />
 
             <RouteDetours
