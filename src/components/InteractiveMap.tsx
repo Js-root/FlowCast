@@ -10,6 +10,7 @@ import { radiusAt, severityToColor } from '../utils/radiusAt';
 import { isIncidentConfirmed } from '../utils/verification';
 import { DELHI_CENTER, DELHI_NCR_BOUNDS, DEFAULT_ZOOM, MIN_ZOOM, MAX_ZOOM, TILE_LAYER_URL } from '../constants/map';
 import { FEATURES } from '../constants/features';
+import { CITIES } from '../constants/cities';
 
 interface InteractiveMapProps {
   nodes: TrafficNode[];
@@ -21,11 +22,19 @@ interface InteractiveMapProps {
   forecastMinutesAhead: number;
   detourPositions?: [number, number][];
   selectedRouteIsAiRecommended?: boolean;
+  selectedCity: string;
 }
 
 // Inner subcomponent to handle programmatic map viewport transitions
-const MapController: React.FC<{ selectedIncident: Incident | null }> = ({ selectedIncident }) => {
+const MapController: React.FC<{ selectedIncident: Incident | null; selectedCity: string; center: [number, number] }> = ({ selectedIncident, selectedCity, center }) => {
   const map = useMap();
+
+  useEffect(() => {
+    map.flyTo(center, 12, {
+      animate: true,
+      duration: 1.5,
+    });
+  }, [selectedCity, center, map]);
 
   useEffect(() => {
     if (selectedIncident) {
@@ -49,6 +58,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   forecastMinutesAhead,
   detourPositions,
   selectedRouteIsAiRecommended,
+  selectedCity,
 }) => {
   const [showHeatmap, setShowHeatmap] = useState(FEATURES.heatmap);
   const [showIncidents, setShowIncidents] = useState(true);
@@ -81,7 +91,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
     <div className="relative w-full aspect-[16/9] md:aspect-[16/8.5] bg-[#16191A] overflow-hidden border border-[#1A1A1A] group select-none">
       {/* Leaflet Map Container */}
       <MapContainer
-        center={DELHI_CENTER}
+        center={CITIES[selectedCity].center}
         zoom={DEFAULT_ZOOM}
         minZoom={MIN_ZOOM}
         maxZoom={MAX_ZOOM}
@@ -92,7 +102,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
         attributionControl={false}
       >
         {/* FlyTo Centering Controller */}
-        <MapController selectedIncident={selectedIncident} />
+        <MapController selectedIncident={selectedIncident} selectedCity={selectedCity} center={CITIES[selectedCity].center} />
 
         <TileLayer url={TILE_LAYER_URL} />
 
@@ -280,7 +290,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
       {/* Map Watermark & Live Time */}
       <div className="absolute top-3 right-3 bg-white/95 border border-[#1A1A1A] px-3 py-1 text-[11px] font-mono text-[#1A1A1A] flex items-center gap-2 z-[1000] shadow-sm font-bold">
         <span className="w-2.5 h-2.5 rounded-full bg-[#D93B2D] animate-pulse" />
-        <span>DELHI VECTOR RADAR</span>
+        <span>{CITIES[selectedCity].name.toUpperCase()} RADAR</span>
         <span className="text-[#D93B2D] font-bold">15:34 IST</span>
       </div>
     </div>

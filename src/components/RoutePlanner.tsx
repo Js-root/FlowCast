@@ -8,6 +8,7 @@ interface RoutePlannerProps {
   loading: boolean;
   setLoading: (loading: boolean) => void;
   onNavigateToDashboard: () => void;
+  selectedCity: string;
 }
 
 export const RoutePlanner: React.FC<RoutePlannerProps> = ({
@@ -16,17 +17,50 @@ export const RoutePlanner: React.FC<RoutePlannerProps> = ({
   loading,
   setLoading,
   onNavigateToDashboard,
+  selectedCity,
 }) => {
   const [origin, setOrigin] = useState('Connaught Place, New Delhi');
   const [destination, setDestination] = useState('Gurgaon Cyber City, Haryana');
   const [forecastHorizon, setForecastHorizon] = useState(30);
 
-  const presetPairs = [
-    { from: 'Connaught Place', to: 'Gurgaon Cyber City' },
-    { from: 'Noida Sector 62', to: 'AIIMS Junction' },
-    { from: 'Dwarka Sector 21', to: 'IGI Airport T3' },
-    { from: 'Anand Vihar ISBT', to: 'Nehru Place' },
-  ];
+  // Sync origin/destination with city switch
+  React.useEffect(() => {
+    if (selectedCity === 'mumbai') {
+      setOrigin('Bandra Junction, Mumbai');
+      setDestination('Worli Sea Link Entrance, Mumbai');
+    } else if (selectedCity === 'bengaluru') {
+      setOrigin('MG Road Metro, Bengaluru');
+      setDestination('Silk Board Junction, Bengaluru');
+    } else {
+      setOrigin('Connaught Place, New Delhi');
+      setDestination('Gurgaon Cyber City, Haryana');
+    }
+  }, [selectedCity]);
+
+  const presetPairs = React.useMemo(() => {
+    if (selectedCity === 'mumbai') {
+      return [
+        { from: 'Bandra Junction', to: 'Worli Sea Link' },
+        { from: 'Dadar Chowk', to: 'CST Terminus' },
+        { from: 'Powai Lake Crossing', to: 'Andheri WEH Metro' },
+        { from: 'Vashi Bridge Toll', to: 'Kurla East' },
+      ];
+    } else if (selectedCity === 'bengaluru') {
+      return [
+        { from: 'MG Road Metro', to: 'Silk Board Junction' },
+        { from: 'Majestic bus stand', to: 'Electronic City Phase 1 Toll' },
+        { from: 'Hebbal Flyover', to: 'Whitefield Hope Farm' },
+        { from: 'Yeswanthpur Junction', to: 'Koramangala Sony World' },
+      ];
+    } else {
+      return [
+        { from: 'Connaught Place', to: 'Gurgaon Cyber City' },
+        { from: 'Noida Sector 62', to: 'AIIMS Junction' },
+        { from: 'Dwarka Sector 21', to: 'IGI Airport T3' },
+        { from: 'Anand Vihar ISBT', to: 'Nehru Place' },
+      ];
+    }
+  }, [selectedCity]);
 
   const handleAnalyze = async () => {
     setLoading(true);
@@ -38,6 +72,7 @@ export const RoutePlanner: React.FC<RoutePlannerProps> = ({
           origin,
           destination,
           timeHorizonMins: forecastHorizon,
+          city: selectedCity,
         }),
       });
       const data = await res.json();

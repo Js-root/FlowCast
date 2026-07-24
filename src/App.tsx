@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { NavTab, TrafficNode, Incident, SocialSignal, RouteOption, DispatchLogEntry, RouteAnalysis } from './types';
-import { INITIAL_NODES, INITIAL_INCIDENTS, INITIAL_SOCIAL_SIGNALS, CAMERA_FEEDS } from './data/delhiTrafficData';
+import { INITIAL_INCIDENTS, INITIAL_SOCIAL_SIGNALS, CAMERA_FEEDS } from './data/delhiTrafficData';
+import { CITIES } from './constants/cities';
 import { Header } from './components/Header';
 import { HeroSection } from './components/HeroSection';
 import { Dashboard } from './components/Dashboard';
@@ -15,7 +16,8 @@ import { AlertTriangle } from 'lucide-react';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<NavTab>('dashboard');
-  const [nodes, setNodes] = useState<TrafficNode[]>(INITIAL_NODES);
+  const [selectedCity, setSelectedCity] = useState<string>('delhi');
+  const [nodes, setNodes] = useState<TrafficNode[]>(CITIES.delhi.nodes);
   const [incidents, setIncidents] = useState<Incident[]>(INITIAL_INCIDENTS);
   const [socialSignals, setSocialSignals] = useState<SocialSignal[]>(INITIAL_SOCIAL_SIGNALS);
   const [demoModalOpen, setDemoModalOpen] = useState(false);
@@ -37,15 +39,61 @@ export default function App() {
     availableRoutes,
   } = useRouteSelection(incidents);
 
-  // Load live TomTom incidents on mount
+  // Load live TomTom incidents on mount / city change
   React.useEffect(() => {
     const fetchLiveIncidents = async () => {
       try {
-        const res = await fetch('/api/live-incidents');
+        const cityConfig = CITIES[selectedCity];
+        const res = await fetch(`/api/live-incidents?bbox=${encodeURIComponent(cityConfig.bbox)}`);
         if (!res.ok) throw new Error('Live incidents request failed');
         const data = await res.json();
-        if (data.success && data.incidents && data.incidents.length > 0) {
-          setIncidents(data.incidents);
+        if (data.success && data.incidents) {
+          let finalIncidents = data.incidents;
+          if (finalIncidents.length === 0) {
+            // Generate 2 realistic mock incidents for the selected city
+            const center = cityConfig.center;
+            finalIncidents = [
+              {
+                id: `${selectedCity}-mock-1`,
+                title: `Minor Collision near City Center`,
+                area: `${cityConfig.name} Arterial Road`,
+                severity: 'moderate',
+                category: 'collision',
+                delayMinutes: 15,
+                startsInMinutes: 0,
+                confidencePercent: 95,
+                socialSource: "Citizen Report",
+                description: `Stalled vehicle causing single lane blockage.`,
+                coords: { x: 45, y: 48 },
+                lat: center[0] + 0.005,
+                lng: center[1] - 0.005,
+                cascadingRoads: [`Primary Corridor`],
+                affectedRoads: [`Primary Corridor`],
+                verificationStatus: 'confirmed',
+                sourcesCount: 3
+              },
+              {
+                id: `${selectedCity}-mock-2`,
+                title: `Road Construction Delay`,
+                area: `${cityConfig.name} Bypass Link`,
+                severity: 'heavy',
+                category: 'construction',
+                delayMinutes: 32,
+                startsInMinutes: 0,
+                confidencePercent: 98,
+                socialSource: "Municipal Alert",
+                description: `Flyover repair works blocking two right lanes.`,
+                coords: { x: 60, y: 70 },
+                lat: center[0] - 0.008,
+                lng: center[1] + 0.008,
+                cascadingRoads: [`Bypass Loop`],
+                affectedRoads: [`Bypass Loop`],
+                verificationStatus: 'confirmed',
+                sourcesCount: 12
+              }
+            ];
+          }
+          setIncidents(finalIncidents);
           
           const now = new Date();
           const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
@@ -53,8 +101,8 @@ export default function App() {
             {
               id: `log-live-load-${Date.now()}`,
               time: timeStr,
-              title: 'Live Telemetry Loaded',
-              details: `Synced ${data.incidents.length} active Delhi incidents via TomTom flow sensors.`,
+              title: `Live Telemetry Loaded (${cityConfig.name})`,
+              details: `Synced ${finalIncidents.length} active incidents for ${cityConfig.name} via TomTom.`,
               type: 'system'
             },
             ...prev
@@ -64,17 +112,30 @@ export default function App() {
         console.warn('Failed to load live TomTom incidents. Defaulting to mock incidents.', err);
       }
     };
+    
+    // Set nodes for city
+    setNodes(CITIES[selectedCity].nodes);
+    // Reset selected route override/analysis on city change
+    setActiveRouteAnalysis(null);
+    setSelectedRouteIdOverride(null);
+
     fetchLiveIncidents();
-  }, []);
+  }, [selectedCity]);
 
   const handleReloadLiveIncidents = async () => {
-    triggerToast("Syncing with TomTom Live Traffic Sensors...");
+    const cityConfig = CITIES[selectedCity];
+    triggerToast(`Syncing with TomTom Live Traffic Sensors (${cityConfig.name})...`);
     try {
-      const res = await fetch('/api/live-incidents');
+      const res = await fetch(`/api/live-incidents?bbox=${encodeURIComponent(cityConfig.bbox)}`);
       if (!res.ok) throw new Error('Live incidents request failed');
       const data = await res.json();
-      if (data.success && data.incidents && data.incidents.length > 0) {
-        setIncidents(data.incidents);
+      if (data.success && data.incidents) {
+        let finalIncidents = data.incidents;
+        if (finalIncidents.length === 0) {
+          triggerToast(`✓ Synchronized. No new active incidents in ${cityConfig.name}.`);
+          return;
+        }
+        setIncidents(finalIncidents);
         
         const now = new Date();
         const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
@@ -82,15 +143,13 @@ export default function App() {
           {
             id: `log-live-refresh-${Date.now()}`,
             time: timeStr,
-            title: 'Live Telemetry Synced',
-            details: `Refreshed ${data.incidents.length} active incidents via TomTom.`,
+            title: `Live Telemetry Synced (${cityConfig.name})`,
+            details: `Refreshed ${finalIncidents.length} active incidents.`,
             type: 'system'
           },
           ...prev
         ]);
-        triggerToast(`✓ Synchronized ${data.incidents.length} live traffic events.`);
-      } else {
-        triggerToast("No new live traffic events reported currently.");
+        triggerToast(`✓ Synchronized ${finalIncidents.length} live traffic events.`);
       }
     } catch (err) {
       console.warn(err);
@@ -493,6 +552,9 @@ export default function App() {
               dispatchLogs={dispatchLogs}
               onDeployRoute={handleDeployRoute}
  
+              selectedCity={selectedCity}
+              onSelectCity={setSelectedCity}
+ 
               onOpenDemoModal={() => setDemoModalOpen(true)}
               onNavigateToRoutePlanner={() => setActiveTab('route-planner')}
               onTriggerFakeNews={handleTriggerFakeNews}
@@ -512,6 +574,7 @@ export default function App() {
             loading={routeAnalysisLoading}
             setLoading={setRouteAnalysisLoading}
             onNavigateToDashboard={() => setActiveTab('dashboard')}
+            selectedCity={selectedCity}
           />
         )}
 

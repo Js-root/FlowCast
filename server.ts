@@ -73,10 +73,11 @@ app.get("/api/health", (req, res) => {
 
 // Live TomTom Incidents API (Version 5 GeoJSON)
 app.get("/api/live-incidents", async (req, res) => {
-  const cacheKey = "incidents:live";
+  const bbox = (req.query.bbox as string) || "77.0,28.4,77.4,28.8";
+  const cacheKey = `incidents:live:${bbox}`;
   const cachedVal = backendCache.get<any>(cacheKey);
   if (cachedVal) {
-    console.log(`[Cache Hit] Live Incidents list`);
+    console.log(`[Cache Hit] Live Incidents list for bbox: ${bbox}`);
     return res.json(cachedVal);
   }
 
@@ -86,8 +87,6 @@ app.get("/api/live-incidents", async (req, res) => {
   }
 
   try {
-    // Delhi Bounding Box coordinates: minLon=77.0, minLat=28.4, maxLon=77.4, maxLat=28.8
-    const bbox = "77.0,28.4,77.4,28.8";
     const fieldsParam = "fields={incidents{type,geometry{type,coordinates},properties{id,iconCategory,magnitudeOfDelay,events{description,code,iconCategory},startTime,endTime,from,to,length,delay,roadNumbers,aci{probabilityOfOccurrence,numberOfReports,lastReportTime}}}}";
     const url = `https://api.tomtom.com/traffic/services/5/incidentDetails?key=${tomtomKey}&bbox=${bbox}&zoom=10&trafficModelId=-1&${fieldsParam}`;
     
@@ -409,27 +408,30 @@ const GAZETTEER: Record<string, [number, number]> = {
   "nehru place": [28.5487, 77.2513]
 };
 
-async function geocode(query: string, tomtomKey?: string): Promise<[number, number] | null> {
+async function geocode(query: string, tomtomKey?: string, city?: string): Promise<[number, number] | null> {
   const norm = query.toLowerCase().trim();
   
-  for (const [key, val] of Object.entries(GAZETTEER)) {
-    if (norm.includes(key)) {
-      return val;
+  if (!city || city.toLowerCase() === 'delhi') {
+    for (const [key, val] of Object.entries(GAZETTEER)) {
+      if (norm.includes(key)) {
+        return val;
+      }
     }
   }
 
-  const cacheKey = `geocode:${norm}`;
+  const cacheKey = `geocode:${norm}:${city || 'default'}`;
   const cachedVal = backendCache.get<[number, number]>(cacheKey);
   if (cachedVal) {
-    console.log(`[Cache Hit] Geocode lookup: "${norm}" -> [${cachedVal}]`);
+    console.log(`[Cache Hit] Geocode lookup: "${norm}" (${city || 'default'}) -> [${cachedVal}]`);
     return cachedVal;
   }
 
   let result: [number, number] | null = null;
+  const biasQuery = city ? `${query}, ${city}` : query;
 
   if (tomtomKey) {
     try {
-      const url = `https://api.tomtom.com/search/2/geocode/${encodeURIComponent(query)}.json?key=${tomtomKey}&countrySet=IN&limit=1`;
+      const url = `https://api.tomtom.com/search/2/geocode/${encodeURIComponent(biasQuery)}.json?key=${tomtomKey}&countrySet=IN&limit=1`;
       const res = await fetch(url);
       const data = await res.json() as any;
       if (data.results && data.results.length > 0) {
@@ -443,7 +445,8 @@ async function geocode(query: string, tomtomKey?: string): Promise<[number, numb
 
   if (!result) {
     try {
-      const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query + ", Delhi")}&format=json&limit=1`;
+      const suffix = city ? `, ${city}` : ", Delhi";
+      const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query + suffix)}&format=json&limit=1`;
       const res = await fetch(url, { headers: { "User-Agent": "FlowCast-Traffic-Center" } });
       const data = await res.json() as any;
       if (data && data.length > 0) {
@@ -464,7 +467,7 @@ async function geocode(query: string, tomtomKey?: string): Promise<[number, numb
 // Route Optimization & Disruption Analysis Route
 app.post("/api/route-analyze", async (req, res) => {
   try {
-    const { origin, destination, timeHorizonMins } = req.body;
+    const { origin, destination, timeHorizonMins, city } = req.body;
 
     if (!origin || !destination) {
       return res.status(400).json({ success: false, error: "Origin and Destination are required" });
@@ -529,8 +532,8 @@ app.post("/api/route-analyze", async (req, res) => {
     }
 
     // Geocode origin & destination
-    const originCoords = await geocode(origin, tomtomKey);
-    const destCoords = await geocode(destination, tomtomKey);
+    const originCoords = await geocode(origin, tomtomKey, city);
+    const destCoords = await geocode(destination, tomtomKey, city);
 
     if (!originCoords || !destCoords) {
       console.log("Failed to geocode origin or destination coordinates. Triggering local routing fallback.");

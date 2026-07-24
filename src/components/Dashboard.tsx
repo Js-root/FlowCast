@@ -33,6 +33,9 @@ interface DashboardProps {
   dispatchLogs: DispatchLogEntry[];
   onDeployRoute: (route: RouteOption) => void;
 
+  selectedCity: string;
+  onSelectCity: (city: string) => void;
+
   onOpenDemoModal: () => void;
   onNavigateToRoutePlanner: () => void;
   onTriggerFakeNews?: () => void;
@@ -57,6 +60,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
   availableRoutes,
   dispatchLogs,
   onDeployRoute,
+
+  selectedCity,
+  onSelectCity,
 
   onOpenDemoModal,
   onNavigateToRoutePlanner,
@@ -162,6 +168,20 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </div>
 
           <div className="flex items-center gap-4 text-xs text-[#1A1A1A]/70">
+            {/* City Selector Dropdown */}
+            <div className="flex items-center gap-1.5 bg-white border border-[#1A1A1A]/15 px-2 py-0.5 font-bold uppercase tracking-wider text-[#1A1A1A]">
+              <span className="text-[10px] text-[#1A1A1A]/50 font-mono">CITY:</span>
+              <select
+                value={selectedCity}
+                onChange={(e) => onSelectCity(e.target.value)}
+                className="bg-transparent border-none text-[11px] font-bold text-[#1A1A1A] outline-none cursor-pointer pr-1 font-mono uppercase"
+              >
+                <option value="delhi">DELHI NCR</option>
+                <option value="mumbai">MUMBAI</option>
+                <option value="bengaluru">BENGALURU</option>
+              </select>
+            </div>
+
             <span className="hidden md:flex items-center gap-1.5 text-[#D93B2D] bg-[#D93B2D]/10 border border-[#D93B2D]/30 px-2.5 py-0.5 font-bold uppercase tracking-wider">
               <span className="w-1.5 h-1.5 rounded-full bg-[#D93B2D] animate-ping" />
               SYSTEM OPERATIONAL
@@ -302,6 +322,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 forecastMinutesAhead={forecastMinutes}
                 detourPositions={selectedRoute?.polylinePositions}
                 selectedRouteIsAiRecommended={selectedRoute?.isAiRecommended}
+                selectedCity={selectedCity}
               />
 
               {/* Editorial Floating Overlay Badge */}
