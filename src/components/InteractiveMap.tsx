@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { TrafficNode, Incident } from '../types';
-import { AlertTriangle, Zap, Layers } from 'lucide-react';
-import { MapContainer, TileLayer, CircleMarker, Circle, Polyline, Popup, LayerGroup, useMap } from 'react-leaflet';
+import { AlertTriangle, Layers, Activity } from 'lucide-react';
+import { MapContainer, TileLayer, CircleMarker, Circle, Polyline, Popup, Tooltip, LayerGroup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Circle as LeafletCircle } from 'leaflet';
 
 import { AnimatedIncidentCircle } from './AnimatedIncidentCircle';
 import { radiusAt, severityToColor } from '../utils/radiusAt';
 import { isIncidentConfirmed } from '../utils/verification';
-import { DELHI_CENTER, DELHI_NCR_BOUNDS, DEFAULT_ZOOM, MIN_ZOOM, MAX_ZOOM, TILE_LAYER_URL } from '../constants/map';
+import { DELHI_CENTER, DELHI_NCR_BOUNDS, DEFAULT_ZOOM, MIN_ZOOM, MAX_ZOOM, TILE_LAYER_URL, TRAFFIC_FLOW_TILE_URL } from '../constants/map';
 import { FEATURES } from '../constants/features';
 
 interface InteractiveMapProps {
@@ -21,10 +21,16 @@ interface InteractiveMapProps {
   forecastMinutesAhead: number;
   detourPositions?: [number, number][];
   selectedRouteIsAiRecommended?: boolean;
+  /** When true, map fills its parent instead of using a fixed aspect ratio (for modals). */
+  fillContainer?: boolean;
+  userLocation?: { lat: number; lng: number; name?: string } | null;
 }
 
 // Inner subcomponent to handle programmatic map viewport transitions
-const MapController: React.FC<{ selectedIncident: Incident | null }> = ({ selectedIncident }) => {
+const MapController: React.FC<{ 
+  selectedIncident: Incident | null;
+  userLocation?: { lat: number; lng: number; name?: string } | null;
+}> = ({ selectedIncident, userLocation }) => {
   const map = useMap();
 
   useEffect(() => {
@@ -33,8 +39,33 @@ const MapController: React.FC<{ selectedIncident: Incident | null }> = ({ select
         animate: true,
         duration: 1.2,
       });
+    } else if (userLocation) {
+      map.flyTo([userLocation.lat, userLocation.lng], 13.5, {
+        animate: true,
+        duration: 1.2,
+      });
     }
-  }, [selectedIncident, map]);
+  }, [selectedIncident, userLocation, map]);
+
+  return null;
+};
+
+/** Invalidates Leaflet size after mount so tiles render correctly in flex/modal containers. */
+const MapResizeHandler: React.FC = () => {
+  const map = useMap();
+
+  useEffect(() => {
+    const invalidate = () => map.invalidateSize({ animate: false });
+    // After layout settles (modal open / flex resize)
+    const t1 = window.setTimeout(invalidate, 50);
+    const t2 = window.setTimeout(invalidate, 300);
+    window.addEventListener('resize', invalidate);
+    return () => {
+      window.clearTimeout(t1);
+      window.clearTimeout(t2);
+      window.removeEventListener('resize', invalidate);
+    };
+  }, [map]);
 
   return null;
 };
@@ -49,10 +80,24 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   forecastMinutesAhead,
   detourPositions,
   selectedRouteIsAiRecommended,
+  fillContainer = false,
+  userLocation,
 }) => {
   const [showHeatmap, setShowHeatmap] = useState(FEATURES.heatmap);
   const [showIncidents, setShowIncidents] = useState(true);
   const [showAlternativeRoutes, setShowAlternativeRoutes] = useState(FEATURES.detours);
+  const [showTraffic, setShowTraffic] = useState(true);
+  const [currentTime, setCurrentTime] = useState('');
+
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      setCurrentTime(now.toLocaleTimeString('en-IN', { hour12: false, hour: '2-digit', minute: '2-digit' }) + ' IST');
+    };
+    updateTime();
+    const int = setInterval(updateTime, 60000);
+    return () => clearInterval(int);
+  }, []);
 
   const circleRef = useRef<LeafletCircle | null>(null);
 
@@ -77,11 +122,15 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
     }
   };
 
+  const containerClass = fillContainer
+    ? 'relative w-full h-full min-h-0 bg-[#16191A] overflow-hidden border-0 group select-none'
+    : 'relative w-full aspect-[16/9] md:aspect-[16/8.5] bg-[#16191A] overflow-hidden border border-[#1A1A1A] group select-none';
+
   return (
-    <div className="relative w-full aspect-[16/9] md:aspect-[16/8.5] bg-[#16191A] overflow-hidden border border-[#1A1A1A] group select-none">
+    <div className={containerClass}>
       {/* Leaflet Map Container */}
       <MapContainer
-        center={DELHI_CENTER}
+        center={userLocation ? [userLocation.lat, userLocation.lng] : DELHI_CENTER}
         zoom={DEFAULT_ZOOM}
         minZoom={MIN_ZOOM}
         maxZoom={MAX_ZOOM}
@@ -92,9 +141,60 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
         attributionControl={false}
       >
         {/* FlyTo Centering Controller */}
-        <MapController selectedIncident={selectedIncident} />
+        <MapController selectedIncident={selectedIncident} userLocation={userLocation} />
+        <MapResizeHandler />
 
         <TileLayer url={TILE_LAYER_URL} />
+
+        {/* TomTom Live Traffic Flow Overlay */}
+        {showTraffic && TRAFFIC_FLOW_TILE_URL && (
+          <TileLayer
+            url={TRAFFIC_FLOW_TILE_URL}
+            opacity={0.7}
+            zIndex={2}
+          />
+        )}
+
+        {/* User Current Location Marker */}
+        {userLocation && (
+          <LayerGroup>
+            <Circle
+              center={[userLocation.lat, userLocation.lng]}
+              radius={400}
+              pathOptions={{
+                color: '#2563EB',
+                fillColor: '#3B82F6',
+                fillOpacity: 0.15,
+                weight: 2,
+                dashArray: '4, 4'
+              }}
+            />
+            <CircleMarker
+              center={[userLocation.lat, userLocation.lng]}
+              radius={10}
+              pathOptions={{
+                color: '#FFFFFF',
+                fillColor: '#2563EB',
+                fillOpacity: 1,
+                weight: 3,
+              }}
+            >
+              <Tooltip permanent direction="top" offset={[0, -10]} className="font-mono text-xs font-bold border border-[#1A1A1A] shadow-md px-2 py-0.5 bg-white text-blue-700">
+                📍 {userLocation.name || 'YOUR LOCATION'}
+              </Tooltip>
+              <Popup>
+                <div className="font-mono text-xs p-1">
+                  <div className="font-bold text-blue-600 uppercase flex items-center gap-1">
+                    <span>📍 {userLocation.name || 'Your Current Location'}</span>
+                  </div>
+                  <div className="text-[10px] text-gray-600 mt-1">
+                    Lat: {userLocation.lat.toFixed(4)}, Lng: {userLocation.lng.toFixed(4)}
+                  </div>
+                </div>
+              </Popup>
+            </CircleMarker>
+          </LayerGroup>
+        )}
 
         {/* Heatmap Overlay Layer */}
         {showHeatmap && (
@@ -172,12 +272,6 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
                         <div className="text-[9px] font-mono text-gray-400 mt-0.5">
                           Source: {inc.socialSource}
                         </div>
-                        <button
-                          onClick={() => onSelectIncident(inc.id)}
-                          className="w-full mt-2.5 bg-[#1A1A1A] text-white py-1 px-2 text-[9px] font-mono uppercase font-bold hover:bg-[#D93B2D] transition-colors border-none cursor-pointer"
-                        >
-                          Inspect Details
-                        </button>
                       </div>
                     </Popup>
                   </AnimatedIncidentCircle>
@@ -218,12 +312,6 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
                     <div className="text-[9px] font-mono text-gray-500 mt-0.5">
                       Delay: +{node.delayMinutes} mins
                     </div>
-                    <button
-                      onClick={() => onSelectNode(node.id)}
-                      className="w-full mt-2 bg-[#1A1A1A] text-white py-1 px-2 text-[9px] font-mono uppercase font-bold hover:bg-[#D93B2D] transition-colors border-none cursor-pointer"
-                    >
-                      Inspect Node
-                    </button>
                   </div>
                 </Popup>
               </CircleMarker>
@@ -231,21 +319,21 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
           })}
         </LayerGroup>
 
-        {/* Detour Routes Polyline */}
-        {showAlternativeRoutes && detourPositions && detourPositions.length > 0 && (
-          <Polyline
-            positions={detourPositions}
-            pathOptions={{
-              color: selectedRouteIsAiRecommended ? '#10B981' : '#D93B2D',
-              dashArray: '6, 6',
-              weight: 3.5,
-            }}
-          />
-        )}
+
       </MapContainer>
 
       {/* Layer Controls Bar */}
       <div className="absolute bottom-3 left-3 bg-white/95 border border-[#1A1A1A] p-1.5 flex items-center gap-2 text-[11px] z-[1000] shadow-md font-mono">
+        <button
+          onClick={() => setShowTraffic(!showTraffic)}
+          className={`px-2.5 py-1 transition-colors flex items-center gap-1.5 cursor-pointer uppercase font-bold border-none ${
+            showTraffic ? 'bg-[#1A1A1A] text-white' : 'text-[#1A1A1A]/70 hover:text-[#1A1A1A]'
+          }`}
+        >
+          <Activity className="w-3 h-3 text-emerald-600" />
+          <span>Live Traffic</span>
+        </button>
+
         <button
           onClick={() => setShowHeatmap(!showHeatmap)}
           className={`px-2.5 py-1 transition-colors flex items-center gap-1.5 cursor-pointer uppercase font-bold border-none ${
@@ -266,22 +354,22 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
           <span>Incidents</span>
         </button>
 
-        <button
-          onClick={() => setShowAlternativeRoutes(!showAlternativeRoutes)}
-          className={`px-2.5 py-1 transition-colors flex items-center gap-1.5 cursor-pointer uppercase font-bold border-none ${
-            showAlternativeRoutes ? 'bg-[#1A1A1A] text-white' : 'text-[#1A1A1A]/70 hover:text-[#1A1A1A]'
-          }`}
-        >
-          <Zap className="w-3 h-3 text-emerald-600" />
-          <span>AI Detours</span>
-        </button>
       </div>
+
+      {/* User Location Active Badge (Top Left of Map) */}
+      {userLocation && (
+        <div className="absolute top-3 left-3 bg-white/95 border border-[#1A1A1A] px-3 py-1 text-[11px] font-mono text-[#1A1A1A] flex items-center gap-2 z-[1000] shadow-sm font-bold animate-fade-up">
+          <span className="w-2.5 h-2.5 rounded-full bg-blue-600 animate-ping" />
+          <span className="text-blue-700 font-extrabold">GPS FIX:</span>
+          <span className="uppercase text-[#1A1A1A] truncate max-w-[180px]">{userLocation.name || 'ACTIVE'}</span>
+        </div>
+      )}
 
       {/* Map Watermark & Live Time */}
       <div className="absolute top-3 right-3 bg-white/95 border border-[#1A1A1A] px-3 py-1 text-[11px] font-mono text-[#1A1A1A] flex items-center gap-2 z-[1000] shadow-sm font-bold">
         <span className="w-2.5 h-2.5 rounded-full bg-[#D93B2D] animate-pulse" />
         <span>DELHI VECTOR RADAR</span>
-        <span className="text-[#D93B2D] font-bold">15:34 IST</span>
+        <span className="text-[#D93B2D] font-bold">{currentTime}</span>
       </div>
     </div>
   );

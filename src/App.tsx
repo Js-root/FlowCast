@@ -26,6 +26,67 @@ export default function App() {
   const [routeAnalysisLoading, setRouteAnalysisLoading] = useState(false);
   const [selectedRouteIdOverride, setSelectedRouteIdOverride] = useState<string | null>(null);
 
+  // User location states
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number; name?: string } | null>(null);
+  const [isLocating, setIsLocating] = useState(false);
+
+  const handleGetUserLocation = () => {
+    if (!navigator.geolocation) {
+      triggerToast("Geolocation is not supported by your browser.");
+      return;
+    }
+
+    setIsLocating(true);
+    triggerToast("Requesting your location...");
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        let locationName = `${latitude.toFixed(2)}°N, ${longitude.toFixed(2)}°E`;
+
+        // Reverse geocoding via TomTom API
+        const tomtomKey = import.meta.env.VITE_TOMTOM_API_KEY;
+        try {
+          if (tomtomKey) {
+            const res = await fetch(`https://api.tomtom.com/search/2/reverseGeocode/${latitude},${longitude}.json?key=${tomtomKey}`);
+            if (res.ok) {
+              const data = await res.json();
+              const addr = data.addresses?.[0]?.address;
+              if (addr) {
+                locationName = addr.municipalitySubdivision || addr.freeformAddress?.split(',')[0] || addr.municipality || locationName;
+              }
+            }
+          } else {
+            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
+            if (res.ok) {
+              const data = await res.json();
+              const addr = data.address;
+              if (addr) {
+                locationName = addr.suburb || addr.neighbourhood || addr.city_district || addr.city || addr.town || locationName;
+              }
+            }
+          }
+        } catch (e) {
+          console.warn("Reverse geocode failed:", e);
+        }
+
+        setUserLocation({ lat: latitude, lng: longitude, name: locationName });
+        setIsLocating(false);
+        triggerToast(`Location active: ${locationName}`);
+      },
+      (error) => {
+        console.error("Geolocation error:", error);
+        setIsLocating(false);
+        triggerToast("Unable to fetch location. Please check browser permissions.");
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 60000,
+      }
+    );
+  };
+
   // Custom Selection Hook
   const {
     selectedIncidentId,
@@ -465,7 +526,9 @@ export default function App() {
       <Header
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        onLaunchDemo={() => setDemoModalOpen(true)}
+        userLocation={userLocation}
+        onGetUserLocation={handleGetUserLocation}
+        isLocating={isLocating}
       />
 
       {/* Main Content Area */}
@@ -474,7 +537,10 @@ export default function App() {
         {activeTab === 'dashboard' && (
           <>
             <HeroSection
-              onLaunchDemo={() => setDemoModalOpen(true)}
+              onViewMap={() => {
+                const el = document.getElementById('dashboard-section');
+                if (el) el.scrollIntoView({ behavior: 'smooth' });
+              }}
               onExploreRoutePlanner={() => setActiveTab('route-planner')}
             />
             <Dashboard
@@ -492,6 +558,7 @@ export default function App() {
               availableRoutes={currentRoutes}
               dispatchLogs={dispatchLogs}
               onDeployRoute={handleDeployRoute}
+              userLocation={userLocation}
  
               onOpenDemoModal={() => setDemoModalOpen(true)}
               onNavigateToRoutePlanner={() => setActiveTab('route-planner')}
@@ -514,8 +581,6 @@ export default function App() {
             onNavigateToDashboard={() => setActiveTab('dashboard')}
           />
         )}
-
-        {activeTab === 'about-ai' && <AboutAI />}
 
         {activeTab === 'documentation' && <Documentation />}
       </main>
