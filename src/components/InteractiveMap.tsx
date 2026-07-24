@@ -13,6 +13,7 @@ interface InteractiveMapProps {
   selectedNodeId: string | null;
   onSelectNode: (id: string) => void;
   forecastMinutesAhead: number;
+  verifications?: Record<string, 'confirmed' | 'unverified'>;
 }
 
 const DELHI: [number, number] = [28.61, 77.22];
@@ -38,15 +39,17 @@ const nodeColor = (status: string) =>
 const sevColor = (s: string) =>
   s === 'severe' ? '#D93B2D' : s === 'moderate' ? '#D97706' : '#eab308';
 
-const incidentIcon = (selected: boolean) =>
-  L.divIcon({
+const incidentIcon = (selected: boolean, unverified: boolean) => {
+  const c = unverified ? '234,179,8' : '217,59,45'; // yellow vs red
+  return L.divIcon({
     className: '',
-    html: `<div style="transform:translate(-50%,-50%);display:flex;align-items:center;justify-content:center;width:26px;height:26px;background:${
-      selected ? '#D93B2D' : 'rgba(217,59,45,0.85)'
-    };border:2px solid #16191A;color:#fff;font-size:14px;font-weight:bold;box-shadow:0 0 8px rgba(217,59,45,0.7)">⚠</div>`,
+    html: `<div style="transform:translate(-50%,-50%);display:flex;align-items:center;justify-content:center;width:26px;height:26px;background:rgba(${c},${
+      selected ? '1' : '0.85'
+    });border:2px solid #16191A;color:#fff;font-size:14px;font-weight:bold;box-shadow:0 0 8px rgba(${c},0.7)">${unverified ? '?' : '⚠'}</div>`,
     iconSize: [26, 26],
     iconAnchor: [13, 13],
   });
+};
 
 export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   nodes,
@@ -56,6 +59,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   selectedNodeId,
   onSelectNode,
   forecastMinutesAhead,
+  verifications = {},
 }) => {
   const [showHeatmap, setShowHeatmap] = useState(true);
   const [showIncidents, setShowIncidents] = useState(true);
@@ -74,16 +78,19 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
       >
         <TileLayer url={DARK_TILES} attribution="&copy; OpenStreetMap &copy; CARTO" />
 
-        {/* Jam impact zones (grow with forecast horizon) */}
+        {/* Jam impact zones (grow with forecast horizon; yellow until Confirmed) */}
         {showHeatmap &&
-          incidents.map((inc) => (
-            <Circle
-              key={`jam-${inc.id}`}
-              center={[inc.lat, inc.lng]}
-              radius={radiusAt(inc, forecastMinutesAhead)}
-              pathOptions={{ color: sevColor(inc.severity), weight: 1, fillColor: sevColor(inc.severity), fillOpacity: jamOpacity }}
-            />
-          ))}
+          incidents.map((inc) => {
+            const color = verifications[inc.id] === 'unverified' ? '#eab308' : sevColor(inc.severity);
+            return (
+              <Circle
+                key={`jam-${inc.id}`}
+                center={[inc.lat, inc.lng]}
+                radius={radiusAt(inc, forecastMinutesAhead)}
+                pathOptions={{ color, weight: 1, fillColor: color, fillOpacity: jamOpacity }}
+              />
+            );
+          })}
 
         {/* AI detour */}
         {showDetours && (
@@ -112,22 +119,29 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
 
         {/* Incident markers */}
         {showIncidents &&
-          incidents.map((inc) => (
-            <Marker
-              key={inc.id}
-              position={[inc.lat, inc.lng]}
-              icon={incidentIcon(selectedIncidentId === inc.id)}
-              eventHandlers={{ click: () => onSelectIncident(inc.id) }}
-            >
-              <Popup>
-                <strong style={{ color: '#D93B2D' }}>{inc.title}</strong>
-                <br />
-                {inc.area}
-                <br />
-                Delay +{inc.delayMinutes}m · starts in {inc.startsInMinutes}m · {inc.confidencePercent}% conf
-              </Popup>
-            </Marker>
-          ))}
+          incidents.map((inc) => {
+            const unverified = verifications[inc.id] === 'unverified';
+            return (
+              <Marker
+                key={inc.id}
+                position={[inc.lat, inc.lng]}
+                icon={incidentIcon(selectedIncidentId === inc.id, unverified)}
+                eventHandlers={{ click: () => onSelectIncident(inc.id) }}
+              >
+                <Popup>
+                  <span style={{ color: unverified ? '#a16207' : '#059669', fontWeight: 700, fontSize: 11 }}>
+                    {unverified ? '⚠ UNVERIFIED WARNING' : '✓ CONFIRMED'}
+                  </span>
+                  <br />
+                  <strong style={{ color: '#D93B2D' }}>{inc.title}</strong>
+                  <br />
+                  {inc.area}
+                  <br />
+                  Delay +{inc.delayMinutes}m · starts in {inc.startsInMinutes}m · {inc.confidencePercent}% conf
+                </Popup>
+              </Marker>
+            );
+          })}
       </MapContainer>
 
       {/* Layer Controls Bar */}
