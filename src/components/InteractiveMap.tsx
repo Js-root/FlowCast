@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { TrafficNode, Incident } from '../types';
-import { AlertTriangle, Layers, Activity } from 'lucide-react';
+import { AlertTriangle, Layers, Activity, CloudRain } from 'lucide-react';
 import { MapContainer, TileLayer, CircleMarker, Circle, Polyline, Popup, Tooltip, LayerGroup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Circle as LeafletCircle } from 'leaflet';
@@ -12,6 +12,47 @@ import { DELHI_CENTER, DELHI_NCR_BOUNDS, DEFAULT_ZOOM, MIN_ZOOM, MAX_ZOOM, TILE_
 import { FEATURES } from '../constants/features';
 import { CITIES } from '../constants/cities';
 
+interface WaterloggingHazard {
+  name: string;
+  lat: number;
+  lng: number;
+  baseRadius: number; // in meters
+  severity: 'heavy' | 'severe' | 'moderate';
+}
+
+const WATERLOGGING_ZONES: Record<string, WaterloggingHazard[]> = {
+  delhi: [
+    { name: "Minto Bridge Underpass", lat: 28.6330, lng: 77.2200, baseRadius: 150, severity: 'severe' },
+    { name: "Jahangirpuri Metro Subway", lat: 28.7256, lng: 77.1128, baseRadius: 100, severity: 'heavy' },
+    { name: "Pul Prahladpur Underpass", lat: 28.5244, lng: 77.2513, baseRadius: 120, severity: 'moderate' }
+  ],
+  mumbai: [
+    { name: "Milan Subway (Santacruz)", lat: 19.0880, lng: 72.8420, baseRadius: 180, severity: 'severe' },
+    { name: "Hindmata Chowk (Dadar)", lat: 19.0180, lng: 72.8480, baseRadius: 130, severity: 'severe' },
+    { name: "King's Circle Railway Bridge", lat: 19.0290, lng: 72.8550, baseRadius: 110, severity: 'heavy' }
+  ],
+  bengaluru: [
+    { name: "Silk Board Underpass Tunnel", lat: 12.9174, lng: 77.6228, baseRadius: 150, severity: 'severe' },
+    { name: "Outer Ring Road (Bellandur)", lat: 12.9360, lng: 77.6880, baseRadius: 130, severity: 'heavy' },
+    { name: "Hope Farm Underpass", lat: 12.9840, lng: 77.7520, baseRadius: 90, severity: 'moderate' }
+  ]
+};
+
+const STORM_CELLS: Record<string, { lat: number; lng: number; radius: number }[]> = {
+  delhi: [
+    { lat: 28.65, lng: 77.20, radius: 2800 },
+    { lat: 28.58, lng: 77.28, radius: 2000 }
+  ],
+  mumbai: [
+    { lat: 19.08, lng: 72.86, radius: 3500 },
+    { lat: 19.15, lng: 72.89, radius: 2500 }
+  ],
+  bengaluru: [
+    { lat: 12.95, lng: 77.62, radius: 3000 },
+    { lat: 12.89, lng: 77.66, radius: 2200 }
+  ]
+};
+
 interface InteractiveMapProps {
   nodes: TrafficNode[];
   incidents: Incident[];
@@ -22,21 +63,18 @@ interface InteractiveMapProps {
   forecastMinutesAhead: number;
   detourPositions?: [number, number][];
   selectedRouteIsAiRecommended?: boolean;
-  /** When true, map fills its parent instead of using a fixed aspect ratio (for modals). */
+  selectedCity: string;
   fillContainer?: boolean;
   userLocation?: { lat: number; lng: number; name?: string } | null;
 }
 
 // Inner subcomponent to handle programmatic map viewport transitions
 const MapController: React.FC<{ 
-  selectedIncident: Incident | null;
+  selectedIncident: Incident | null; 
+  selectedCity: string; 
+  center: [number, number];
   userLocation?: { lat: number; lng: number; name?: string } | null;
-}> = ({ selectedIncident, userLocation }) => {
-  selectedCity: string;
-}
-
-// Inner subcomponent to handle programmatic map viewport transitions
-const MapController: React.FC<{ selectedIncident: Incident | null; selectedCity: string; center: [number, number] }> = ({ selectedIncident, selectedCity, center }) => {
+}> = ({ selectedIncident, selectedCity, center, userLocation }) => {
   const map = useMap();
 
   useEffect(() => {
@@ -93,14 +131,15 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   forecastMinutesAhead,
   detourPositions,
   selectedRouteIsAiRecommended,
+  selectedCity,
   fillContainer = false,
   userLocation,
-  selectedCity,
 }) => {
   const [showHeatmap, setShowHeatmap] = useState(FEATURES.heatmap);
   const [showIncidents, setShowIncidents] = useState(true);
   const [showAlternativeRoutes, setShowAlternativeRoutes] = useState(FEATURES.detours);
   const [showTraffic, setShowTraffic] = useState(true);
+  const [showWeather, setShowWeather] = useState(true);
   const [currentTime, setCurrentTime] = useState('');
 
   useEffect(() => {
@@ -112,6 +151,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
     const int = setInterval(updateTime, 60000);
     return () => clearInterval(int);
   }, []);
+
   const [mapEngine, setMapEngine] = useState<'leaflet' | 'maplibre' | 'openlayers' | 'google-road' | 'google-satellite'>('leaflet');
 
   const circleRef = useRef<LeafletCircle | null>(null);
@@ -177,7 +217,6 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
     <div className={containerClass}>
       {/* Leaflet Map Container */}
       <MapContainer
-        center={userLocation ? [userLocation.lat, userLocation.lng] : DELHI_CENTER}
         center={CITIES[selectedCity].center}
         zoom={DEFAULT_ZOOM}
         minZoom={MIN_ZOOM}
@@ -189,9 +228,8 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
         attributionControl={false}
       >
         {/* FlyTo Centering Controller */}
-        <MapController selectedIncident={selectedIncident} userLocation={userLocation} />
+        <MapController selectedIncident={selectedIncident} selectedCity={selectedCity} center={CITIES[selectedCity].center} userLocation={userLocation} />
         <MapResizeHandler />
-        <MapController selectedIncident={selectedIncident} selectedCity={selectedCity} center={CITIES[selectedCity].center} />
 
         <TileLayer url={tileUrl} />
 
@@ -368,7 +406,94 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
           })}
         </LayerGroup>
 
+        {/* Weather Radar Storm Cells & Waterlogging overlays */}
+        {showWeather && (
+          <LayerGroup>
+            {/* Pulsing Storm clouds that drift with forecast timeline */}
+            {(STORM_CELLS[selectedCity.toLowerCase()] || STORM_CELLS.delhi).map((cell, idx) => {
+              const driftLat = cell.lat + (forecastMinutesAhead / 60) * 0.015;
+              const driftLng = cell.lng + (forecastMinutesAhead / 60) * 0.012;
+              return (
+                <Circle
+                  key={`storm-cell-${idx}`}
+                  center={[driftLat, driftLng]}
+                  radius={cell.radius}
+                  pathOptions={{
+                    fillColor: '#8B5CF6',
+                    fillOpacity: 0.16,
+                    color: '#6D28D9',
+                    weight: 1.5,
+                    dashArray: '3, 6'
+                  }}
+                />
+              );
+            })}
 
+            {/* Chronic flood-prone subways that grow with forecast slider */}
+            {(WATERLOGGING_ZONES[selectedCity.toLowerCase()] || WATERLOGGING_ZONES.delhi).map((zone, idx) => {
+              const scaleFactor = 1 + (forecastMinutesAhead / 60) * 0.6;
+              const currentRadius = zone.baseRadius * scaleFactor;
+              const color = zone.severity === 'severe' ? '#EF4444' : zone.severity === 'heavy' ? '#F59E0B' : '#3B82F6';
+              return (
+                <React.Fragment key={`flood-zone-${idx}`}>
+                  {/* Flashing glow indicator ring */}
+                  <Circle
+                    center={[zone.lat, zone.lng]}
+                    radius={currentRadius * 1.5}
+                    pathOptions={{
+                      color: color,
+                      weight: 1,
+                      fillColor: 'transparent',
+                      dashArray: '4, 8',
+                      className: 'animate-pulse'
+                    }}
+                  />
+                  {/* Base alert zone */}
+                  <Circle
+                    center={[zone.lat, zone.lng]}
+                    radius={currentRadius}
+                    pathOptions={{
+                      color: color,
+                      weight: 2,
+                      fillColor: color,
+                      fillOpacity: 0.22
+                    }}
+                  >
+                    <Tooltip direction="top" opacity={0.9} className="font-mono text-[10px] font-bold bg-[#1A1A1A] text-white border-none px-2 py-0.5 shadow-md">
+                      ⚠️ FLOOD: {zone.name} ({Math.round(currentRadius)}m)
+                    </Tooltip>
+                    <Popup>
+                      <div className="font-mono text-xs p-1 text-[#1A1A1A]">
+                        <div className="font-bold text-[#D93B2D] uppercase flex items-center gap-1">
+                          <span>⚠️ ACTIVE FLOOD ZONE</span>
+                        </div>
+                        <div className="font-serif text-gray-900 mt-1 font-semibold">{zone.name}</div>
+                        <div className="text-[10px] text-gray-600 mt-1">
+                          Flooded Area: ~{Math.round(currentRadius)} meters (Forecast: +{forecastMinutesAhead}m)
+                        </div>
+                        <div className="text-[10px] font-bold text-gray-500 uppercase mt-1">
+                          Hazard Risk: <span style={{ color }}>{zone.severity.toUpperCase()}</span>
+                        </div>
+                      </div>
+                    </Popup>
+                  </Circle>
+                </React.Fragment>
+              );
+            })}
+          </LayerGroup>
+        )}
+
+        {/* Detour Routes Polyline */}
+        {showAlternativeRoutes && detourPositions && detourPositions.length > 0 && (
+          <Polyline
+            positions={detourPositions}
+            pathOptions={{
+              color: selectedRouteIsAiRecommended ? '#10B981' : '#D93B2D',
+              dashArray: '6, 6',
+              weight: 3.5,
+            }}
+          />
+        )}
       </MapContainer>
 
       {/* Layer Controls Bar */}
@@ -399,6 +524,16 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
         </button>
 
         <button
+          onClick={() => setShowWeather(!showWeather)}
+          className={`px-2.5 py-1 transition-colors flex items-center gap-1.5 cursor-pointer uppercase font-bold border-none ${
+            showWeather ? 'bg-[#1A1A1A] text-white' : 'text-[#1A1A1A]/70 hover:text-[#1A1A1A]'
+          }`}
+        >
+          <CloudRain className="w-3 h-3 text-sky-600" />
+          <span>Weather Radar</span>
+        </button>
+
+        <button
           onClick={() => setShowHeatmap(!showHeatmap)}
           className={`px-2.5 py-1 transition-colors flex items-center gap-1.5 cursor-pointer uppercase font-bold border-none ${
             showHeatmap ? 'bg-[#1A1A1A] text-white' : 'text-[#1A1A1A]/70 hover:text-[#1A1A1A]'
@@ -417,7 +552,6 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
           <AlertTriangle className="w-3 h-3 text-[#D93B2D]" />
           <span>Incidents</span>
         </button>
-
       </div>
 
       {/* User Location Active Badge (Top Left of Map) */}
@@ -432,10 +566,8 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
       {/* Map Watermark & Live Time */}
       <div className="absolute top-3 right-3 bg-white/95 border border-[#1A1A1A] px-3 py-1 text-[11px] font-mono text-[#1A1A1A] flex items-center gap-2 z-[1000] shadow-sm font-bold">
         <span className="w-2.5 h-2.5 rounded-full bg-[#D93B2D] animate-pulse" />
-        <span>DELHI VECTOR RADAR</span>
-        <span className="text-[#D93B2D] font-bold">{currentTime}</span>
         <span>{watermarkText}</span>
-        <span className="text-[#D93B2D] font-bold">15:34 IST</span>
+        <span className="text-[#D93B2D] font-bold">{currentTime || '15:34 IST'}</span>
       </div>
     </div>
   );

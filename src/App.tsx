@@ -47,7 +47,7 @@ export default function App() {
         let locationName = `${latitude.toFixed(2)}°N, ${longitude.toFixed(2)}°E`;
 
         // Reverse geocoding via TomTom API
-        const tomtomKey = import.meta.env.VITE_TOMTOM_API_KEY;
+        const tomtomKey = (import.meta as any).env.VITE_TOMTOM_API_KEY;
         try {
           if (tomtomKey) {
             const res = await fetch(`https://api.tomtom.com/search/2/reverseGeocode/${latitude},${longitude}.json?key=${tomtomKey}`);
@@ -171,6 +171,49 @@ export default function App() {
         }
       } catch (err) {
         console.warn('Failed to load live TomTom incidents. Defaulting to mock incidents.', err);
+        const cityConfig = CITIES[selectedCity];
+        const center = cityConfig.center;
+        const mockIncidents = [
+          {
+            id: `${selectedCity}-mock-1`,
+            title: `Minor Collision near City Center`,
+            area: `${cityConfig.name} Arterial Road`,
+            severity: 'moderate' as const,
+            category: 'collision' as const,
+            delayMinutes: 15,
+            startsInMinutes: 0,
+            confidencePercent: 95,
+            socialSource: "Citizen Report",
+            description: `Stalled vehicle causing single lane blockage.`,
+            coords: { x: 45, y: 48 },
+            lat: center[0] + 0.005,
+            lng: center[1] - 0.005,
+            cascadingRoads: [`Primary Corridor`],
+            affectedRoads: [`Primary Corridor`],
+            verificationStatus: 'confirmed' as const,
+            sourcesCount: 3
+          },
+          {
+            id: `${selectedCity}-mock-2`,
+            title: `Road Construction Delay`,
+            area: `${cityConfig.name} Bypass Link`,
+            severity: 'heavy' as const,
+            category: 'construction' as const,
+            delayMinutes: 32,
+            startsInMinutes: 0,
+            confidencePercent: 98,
+            socialSource: "Municipal Alert",
+            description: `Flyover repair works blocking two right lanes.`,
+            coords: { x: 60, y: 70 },
+            lat: center[0] - 0.008,
+            lng: center[1] + 0.008,
+            cascadingRoads: [`Bypass Loop`],
+            affectedRoads: [`Bypass Loop`],
+            verificationStatus: 'confirmed' as const,
+            sourcesCount: 12
+          }
+        ];
+        setIncidents(mockIncidents);
       }
     };
     

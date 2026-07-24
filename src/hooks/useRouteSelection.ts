@@ -2,26 +2,37 @@ import { useState, useEffect, useMemo } from 'react';
 import { Incident, RouteOption } from '../types';
 import { INCIDENT_ROUTES } from '../data/incidentRoutes';
 
+function generateWindingPath(start: [number, number], end: [number, number], offsetDir: number = 1): [number, number][] {
+  const points: [number, number][] = [];
+  const segments = 6;
+  points.push(start);
+  
+  for (let i = 1; i < segments; i++) {
+    const ratio = i / segments;
+    const baseLat = start[0] + (end[0] - start[0]) * ratio;
+    const baseLng = start[1] + (end[1] - start[1]) * ratio;
+    
+    // Add winding curves
+    const wave = Math.sin(ratio * Math.PI);
+    const latOffset = wave * 0.0065 * offsetDir * (i % 2 === 0 ? 0.7 : 1.3);
+    const lngOffset = wave * 0.0065 * -offsetDir * (i % 3 === 0 ? 1.2 : 0.8);
+    
+    points.push([baseLat + latOffset, baseLng + lngOffset]);
+  }
+  
+  points.push(end);
+  return points;
+}
+
 function generateDynamicRoutes(incident: Incident): RouteOption[] {
   const { lat, lng, area, delayMinutes } = incident;
   
-  const standardPolyline: [number, number][] = [
-    [lat - 0.015, lng - 0.015],
-    [lat, lng],
-    [lat + 0.015, lng + 0.015]
-  ];
+  const start: [number, number] = [lat - 0.018, lng - 0.018];
+  const end: [number, number] = [lat + 0.018, lng + 0.018];
 
-  const aiPolyline: [number, number][] = [
-    [lat - 0.015, lng - 0.015],
-    [lat - 0.008, lng + 0.012],
-    [lat + 0.015, lng + 0.015]
-  ];
-
-  const altPolyline: [number, number][] = [
-    [lat - 0.015, lng - 0.015],
-    [lat + 0.012, lng - 0.008],
-    [lat + 0.015, lng + 0.015]
-  ];
+  const standardPolyline = generateWindingPath(start, end, 0.3);
+  const aiPolyline = generateWindingPath(start, end, 1.8);
+  const altPolyline = generateWindingPath(start, end, -1.5);
 
   return [
     {
