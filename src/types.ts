@@ -14,7 +14,8 @@ export interface Incident {
   confidencePercent: number;
   socialSource: string;
   description: string;
-  coords: { x: number; y: number }; // Percentage coords on Delhi map canvas
+  lat: number;
+  lng: number;
   cascadingRoads: string[];
 }
 
@@ -24,7 +25,8 @@ export interface TrafficNode {
   status: 'clear' | 'moderate' | 'heavy' | 'severe';
   avgSpeedKmh: number;
   delayMinutes: number;
-  coords: { x: number; y: number };
+  lat: number;
+  lng: number;
 }
 
 export interface CameraFeed {
