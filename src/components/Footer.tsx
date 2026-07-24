@@ -35,7 +35,7 @@ export const Footer: React.FC<FooterProps> = ({ setActiveTab }) => {
 
         {/* Copyright */}
         <div className="text-center md:text-right text-[11px] font-mono text-[#1A1A1A]/60">
-          © 2024 FlowCast Predictive Systems. All rights reserved.
+          © 2026 FlowCast Predictive Systems. All rights reserved.
         </div>
       </div>
     </footer>
