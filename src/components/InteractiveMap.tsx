@@ -29,21 +29,20 @@ interface InteractiveMapProps {
 
 // Inner subcomponent to handle programmatic map viewport transitions
 const MapController: React.FC<{ 
-  selectedIncident: Incident | null;
+  selectedIncident: Incident | null; 
+  selectedCity?: string; 
+  center?: [number, number];
   userLocation?: { lat: number; lng: number; name?: string } | null;
-}> = ({ selectedIncident, userLocation }) => {
-  selectedCity: string;
-}
-
-// Inner subcomponent to handle programmatic map viewport transitions
-const MapController: React.FC<{ selectedIncident: Incident | null; selectedCity: string; center: [number, number] }> = ({ selectedIncident, selectedCity, center }) => {
+}> = ({ selectedIncident, selectedCity, center, userLocation }) => {
   const map = useMap();
 
   useEffect(() => {
-    map.flyTo(center, 12, {
-      animate: true,
-      duration: 1.5,
-    });
+    if (center) {
+      map.flyTo(center, 12, {
+        animate: true,
+        duration: 1.5,
+      });
+    }
   }, [selectedCity, center, map]);
 
   useEffect(() => {
@@ -170,15 +169,14 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   };
 
   const containerClass = fillContainer
-    ? 'relative w-full h-full min-h-0 bg-[#16191A] overflow-hidden border-0 group select-none'
-    : 'relative w-full aspect-[16/9] md:aspect-[16/8.5] bg-[#16191A] overflow-hidden border border-[#1A1A1A] group select-none';
+    ? 'relative w-full h-full min-h-0 bg-[#F2F0EB] overflow-hidden border-0 group select-none'
+    : 'relative w-full aspect-[16/9] md:aspect-[16/8.5] bg-[#F2F0EB] overflow-hidden border border-[#1A1A1A] group select-none';
 
   return (
     <div className={containerClass}>
       {/* Leaflet Map Container */}
       <MapContainer
-        center={userLocation ? [userLocation.lat, userLocation.lng] : DELHI_CENTER}
-        center={CITIES[selectedCity].center}
+        center={userLocation ? [userLocation.lat, userLocation.lng] : (CITIES[selectedCity]?.center || DELHI_CENTER)}
         zoom={DEFAULT_ZOOM}
         minZoom={MIN_ZOOM}
         maxZoom={MAX_ZOOM}
@@ -380,7 +378,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
             onChange={(e: any) => setMapEngine(e.target.value)}
             className="bg-transparent border-none text-[10px] font-bold text-[#1A1A1A] outline-none cursor-pointer pr-1 font-mono uppercase"
           >
-            <option value="leaflet">Leaflet (Dark)</option>
+            <option value="leaflet">Leaflet (Light)</option>
             <option value="maplibre">MapLibre GL</option>
             <option value="openlayers">OpenLayers</option>
             <option value="google-road">Google Roads</option>
@@ -430,12 +428,10 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
       )}
 
       {/* Map Watermark & Live Time */}
-      <div className="absolute top-3 right-3 bg-white/95 border border-[#1A1A1A] px-3 py-1 text-[11px] font-mono text-[#1A1A1A] flex items-center gap-2 z-[1000] shadow-sm font-bold">
-        <span className="w-2.5 h-2.5 rounded-full bg-[#D93B2D] animate-pulse" />
-        <span>DELHI VECTOR RADAR</span>
-        <span className="text-[#D93B2D] font-bold">{currentTime}</span>
-        <span>{watermarkText}</span>
-        <span className="text-[#D93B2D] font-bold">15:34 IST</span>
+      <div className="absolute top-3 right-3 bg-white/95 border border-[#1A1A1A] px-3 py-1 text-[11px] font-mono text-[#1A1A1A] flex items-center gap-2 z-[1000] shadow-sm font-bold truncate max-w-[50%]">
+        <span className="w-2.5 h-2.5 rounded-full bg-[#D93B2D] animate-pulse shrink-0" />
+        <span className="truncate">{watermarkText}</span>
+        <span className="text-[#D93B2D] font-bold shrink-0">{currentTime}</span>
       </div>
     </div>
   );

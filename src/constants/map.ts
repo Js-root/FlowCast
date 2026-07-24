@@ -6,7 +6,7 @@ export const DELHI_NCR_BOUNDS: [[number, number], [number, number]] = [
 export const DEFAULT_ZOOM = 11.5;
 export const MIN_ZOOM = 10;
 export const MAX_ZOOM = 15;
-export const TILE_LAYER_URL = "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png";
+export const TILE_LAYER_URL = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
 
 // TomTom Traffic Flow tile layer — color-codes roads by live speed (green/yellow/red)
 const TOMTOM_KEY = import.meta.env.VITE_TOMTOM_API_KEY || '';

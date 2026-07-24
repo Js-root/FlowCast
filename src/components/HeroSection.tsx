@@ -1,5 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowRight, MapPin, Activity, Cpu, ShieldCheck } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+
+const FLIP_WORDS = ['disruptions', 'bottlenecks', 'accidents', 'gridlocks', 'tailbacks'];
 
 interface HeroSectionProps {
   onViewMap: () => void;
@@ -7,6 +10,15 @@ interface HeroSectionProps {
 }
 
 export const HeroSection: React.FC<HeroSectionProps> = ({ onViewMap, onExploreRoutePlanner }) => {
+  const [wordIndex, setWordIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setWordIndex((prev) => (prev + 1) % FLIP_WORDS.length);
+    }, 2500);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <section className="relative flex flex-col items-center text-center max-w-[1100px] w-full mx-auto pt-16 sm:pt-24 pb-16 sm:pb-24 px-4 gap-8 sm:gap-10 overflow-hidden z-0">
       
@@ -57,8 +69,20 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onViewMap, onExploreRo
         {/* Serif Headline */}
         <h1 className="font-serif font-black text-5xl sm:text-7xl md:text-8xl lg:text-[96px] leading-[0.92] tracking-tight text-[#F2F0EB] animate-fade-up">
           Predict{' '}
-          <span className="text-[#D93B2D] italic font-serif font-normal">
-            disruptions
+          <span className="inline-grid [grid-template-areas:'stack'] relative perspective-1000">
+            <AnimatePresence mode="popLayout">
+              <motion.span
+                key={FLIP_WORDS[wordIndex]}
+                initial={{ y: 25, opacity: 0, rotateX: -60 }}
+                animate={{ y: 0, opacity: 1, rotateX: 0 }}
+                exit={{ y: -25, opacity: 0, rotateX: 60 }}
+                transition={{ duration: 0.5, ease: "easeInOut" }}
+                className="text-[#D93B2D] italic font-serif font-normal inline-block [grid-area:stack]"
+                style={{ transformOrigin: "center center" }}
+              >
+                {FLIP_WORDS[wordIndex]}
+              </motion.span>
+            </AnimatePresence>
           </span>
           <br />
           before they happen.

@@ -17,7 +17,9 @@ import { AlertTriangle } from 'lucide-react';
 export default function App() {
   const [activeTab, setActiveTab] = useState<NavTab>('dashboard');
   const [selectedCity, setSelectedCity] = useState<string>('delhi');
-  const [nodes, setNodes] = useState<TrafficNode[]>(CITIES.delhi.nodes);
+  const [nodes, setNodes] = useState<TrafficNode[]>(() => 
+    CITIES.delhi.nodes.map(n => ({ ...n, avgSpeedKmh: 40, status: 'clear' as const, delayMinutes: 0 }))
+  );
   const [incidents, setIncidents] = useState<Incident[]>(INITIAL_INCIDENTS);
   const [socialSignals, setSocialSignals] = useState<SocialSignal[]>(INITIAL_SOCIAL_SIGNALS);
   const [demoModalOpen, setDemoModalOpen] = useState(false);
@@ -174,13 +176,44 @@ export default function App() {
       }
     };
     
-    // Set nodes for city
-    setNodes(CITIES[selectedCity].nodes);
+    const fetchLiveNodesFlow = async (nodesToFetch: any[]) => {
+      try {
+        const res = await fetch('/api/live-nodes-flow', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nodes: nodesToFetch, cityId: selectedCity })
+        });
+        if (!res.ok) throw new Error('Live nodes request failed');
+        const data = await res.json();
+        if (data.success && data.nodes) {
+          setNodes(data.nodes);
+        }
+      } catch (err) {
+        console.warn('Failed to load live node telemetry.', err);
+      }
+    };
+    
+    // Set base nodes for city
+    const baseNodes = CITIES[selectedCity].nodes.map(n => ({
+      ...n,
+      avgSpeedKmh: 40,
+      status: 'clear' as const,
+      delayMinutes: 0
+    }));
+    setNodes(baseNodes);
+    
     // Reset selected route override/analysis on city change
     setActiveRouteAnalysis(null);
     setSelectedRouteIdOverride(null);
 
     fetchLiveIncidents();
+    fetchLiveNodesFlow(baseNodes);
+
+    const telemetryInterval = setInterval(() => {
+      fetchLiveNodesFlow(baseNodes);
+    }, 15000);
+
+    return () => clearInterval(telemetryInterval);
   }, [selectedCity]);
 
   const handleReloadLiveIncidents = async () => {

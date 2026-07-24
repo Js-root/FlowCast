@@ -3,7 +3,7 @@ import { Terminal, Code, Check, Copy, Database } from 'lucide-react';
 
 export const Documentation: React.FC = () => {
   const [copiedEndpoint, setCopiedEndpoint] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'forecast' | 'route'>('forecast');
+  const [activeTab, setActiveTab] = useState<'forecast' | 'route' | 'flow'>('flow');
 
   const copyToClipboard = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
@@ -49,6 +49,33 @@ export const Documentation: React.FC = () => {
   "riskLevel": "High Risk on Standard Route"
 }`;
 
+  const sampleFlowRequest = `{
+  "cityId": "delhi",
+  "nodes": [
+    {
+      "id": "node-cp",
+      "name": "Connaught Place",
+      "lat": 28.6315,
+      "lng": 77.2167
+    }
+  ]
+}`;
+
+  const sampleFlowResponse = `{
+  "success": true,
+  "nodes": [
+    {
+      "id": "node-cp",
+      "name": "Connaught Place",
+      "lat": 28.6315,
+      "lng": 77.2167,
+      "avgSpeedKmh": 18,
+      "status": "heavy",
+      "delayMinutes": 12
+    }
+  ]
+}`;
+
   return (
     <div className="w-full max-w-[1200px] mx-auto py-8 px-4 flex flex-col gap-10 animate-fade-up">
       {/* Title */}
@@ -74,6 +101,14 @@ export const Documentation: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2 bg-[#F2F0EB] p-1 border border-[#1A1A1A]/20">
+            <button
+              onClick={() => setActiveTab('flow')}
+              className={`px-3 py-1.5 font-mono text-xs font-bold transition-colors cursor-pointer ${
+                activeTab === 'flow' ? 'bg-[#1A1A1A] text-white' : 'text-[#1A1A1A]/70 hover:text-[#1A1A1A]'
+              }`}
+            >
+              POST /api/live-nodes-flow
+            </button>
             <button
               onClick={() => setActiveTab('forecast')}
               className={`px-3 py-1.5 font-mono text-xs font-bold transition-colors cursor-pointer ${
@@ -102,7 +137,7 @@ export const Documentation: React.FC = () => {
               <button
                 onClick={() =>
                   copyToClipboard(
-                    activeTab === 'forecast' ? sampleForecastRequest : sampleRouteRequest,
+                    activeTab === 'forecast' ? sampleForecastRequest : activeTab === 'flow' ? sampleFlowRequest : sampleRouteRequest,
                     'req'
                   )
                 }
@@ -113,7 +148,7 @@ export const Documentation: React.FC = () => {
               </button>
             </div>
             <pre className="bg-[#16191A] border border-[#1A1A1A] p-4 text-xs font-mono text-emerald-400 overflow-x-auto h-[260px]">
-              {activeTab === 'forecast' ? sampleForecastRequest : sampleRouteRequest}
+              {activeTab === 'forecast' ? sampleForecastRequest : activeTab === 'flow' ? sampleFlowRequest : sampleRouteRequest}
             </pre>
           </div>
 
@@ -124,7 +159,7 @@ export const Documentation: React.FC = () => {
               <button
                 onClick={() =>
                   copyToClipboard(
-                    activeTab === 'forecast' ? sampleForecastResponse : sampleRouteResponse,
+                    activeTab === 'forecast' ? sampleForecastResponse : activeTab === 'flow' ? sampleFlowResponse : sampleRouteResponse,
                     'res'
                   )
                 }
@@ -135,7 +170,7 @@ export const Documentation: React.FC = () => {
               </button>
             </div>
             <pre className="bg-[#16191A] border border-[#1A1A1A] p-4 text-xs font-mono text-[#F2F0EB] overflow-x-auto h-[260px]">
-              {activeTab === 'forecast' ? sampleForecastResponse : sampleRouteResponse}
+              {activeTab === 'forecast' ? sampleForecastResponse : activeTab === 'flow' ? sampleFlowResponse : sampleRouteResponse}
             </pre>
           </div>
         </div>
@@ -167,10 +202,21 @@ export const Documentation: React.FC = () => {
             </thead>
             <tbody className="divide-y divide-[#1A1A1A]/15">
               <tr>
-                <td className="py-3 font-serif font-bold text-[#1A1A1A] text-sm">Delhi Traffic Police Official Feed</td>
-                <td className="py-3 text-[#1A1A1A]/70">REST API / Webhook</td>
+                <td className="py-3 font-serif font-bold text-[#1A1A1A] text-sm">TomTom Live Traffic Flow Engine</td>
+                <td className="py-3 text-[#1A1A1A]/70">REST API w/ Physics Simulation Fallback</td>
+                <td className="py-3 text-emerald-700 font-bold">100.0%</td>
+                <td className="py-3 text-[#1A1A1A]">0.2s</td>
+                <td className="py-3 text-right">
+                  <span className="bg-emerald-100 text-emerald-800 border border-emerald-700/30 px-2.5 py-0.5 font-bold text-[10px]">
+                    ONLINE
+                  </span>
+                </td>
+              </tr>
+              <tr>
+                <td className="py-3 font-serif font-bold text-[#1A1A1A] text-sm">Groq AI Route Analysis Engine</td>
+                <td className="py-3 text-[#1A1A1A]/70">Llama-3-70b Inference Stream</td>
                 <td className="py-3 text-emerald-700 font-bold">99.9%</td>
-                <td className="py-3 text-[#1A1A1A]">1.2s</td>
+                <td className="py-3 text-[#1A1A1A]">0.8s</td>
                 <td className="py-3 text-right">
                   <span className="bg-emerald-100 text-emerald-800 border border-emerald-700/30 px-2.5 py-0.5 font-bold text-[10px]">
                     ONLINE

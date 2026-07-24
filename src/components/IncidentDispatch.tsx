@@ -24,7 +24,7 @@ export const IncidentDispatch: React.FC<IncidentDispatchProps> = ({
   const [submitting, setSubmitting] = React.useState(false);
 
   return (
-    <div className="bg-white border border-[#1A1A1A]/15 p-4 flex flex-col gap-3 shadow-sm select-none">
+    <div className="bg-white border border-[#1A1A1A]/15 p-4 flex flex-col gap-3 shadow-sm select-none flex-1">
       {/* Panel Header */}
       <div className="flex items-center justify-between border-b border-[#1A1A1A]/15 pb-2">
         <span className="text-xs font-bold uppercase tracking-wider text-[#1A1A1A] font-serif flex items-center gap-1.5">
@@ -48,7 +48,7 @@ export const IncidentDispatch: React.FC<IncidentDispatchProps> = ({
       </div>
 
       {/* Incident List */}
-      <div className="space-y-2.5 max-h-[280px] overflow-y-auto pr-1">
+      <div className="space-y-2.5 flex-1 min-h-[300px] overflow-y-auto pr-1">
         {incidents.length === 0 ? (
           <div className="text-xs text-[#1A1A1A]/50 font-mono py-8 text-center bg-gray-50 border border-dashed border-[#1A1A1A]/10">
             No active incidents detected.
