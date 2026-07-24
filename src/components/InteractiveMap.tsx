@@ -63,8 +63,41 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   const [showHeatmap, setShowHeatmap] = useState(FEATURES.heatmap);
   const [showIncidents, setShowIncidents] = useState(true);
   const [showAlternativeRoutes, setShowAlternativeRoutes] = useState(FEATURES.detours);
+  const [mapEngine, setMapEngine] = useState<'leaflet' | 'maplibre' | 'openlayers' | 'google-road' | 'google-satellite'>('leaflet');
 
   const circleRef = useRef<LeafletCircle | null>(null);
+
+  // Dynamic Tile Layer URL computation
+  const tileUrl = React.useMemo(() => {
+    switch (mapEngine) {
+      case 'maplibre':
+        return 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager_labels_under/{z}/{x}/{y}{r}.png';
+      case 'openlayers':
+        return 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+      case 'google-road':
+        return 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}';
+      case 'google-satellite':
+        return 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}';
+      default:
+        return TILE_LAYER_URL; // Leaflet default dark theme
+    }
+  }, [mapEngine]);
+
+  const watermarkText = React.useMemo(() => {
+    const cityName = CITIES[selectedCity].name.toUpperCase();
+    switch (mapEngine) {
+      case 'maplibre':
+        return `${cityName} (MAPLIBRE GL)`;
+      case 'openlayers':
+        return `${cityName} (OPENLAYERS)`;
+      case 'google-road':
+        return `${cityName} (GOOGLE ROADMAP)`;
+      case 'google-satellite':
+        return `${cityName} (GOOGLE SATELLITE)`;
+      default:
+        return `${cityName} (LEAFLET RADAR)`;
+    }
+  }, [selectedCity, mapEngine]);
 
   // Auto-open selected incident popup after glide transition finishes
   useEffect(() => {
@@ -104,7 +137,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
         {/* FlyTo Centering Controller */}
         <MapController selectedIncident={selectedIncident} selectedCity={selectedCity} center={CITIES[selectedCity].center} />
 
-        <TileLayer url={TILE_LAYER_URL} />
+        <TileLayer url={tileUrl} />
 
         {/* Heatmap Overlay Layer */}
         {showHeatmap && (
@@ -256,6 +289,21 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
 
       {/* Layer Controls Bar */}
       <div className="absolute bottom-3 left-3 bg-white/95 border border-[#1A1A1A] p-1.5 flex items-center gap-2 text-[11px] z-[1000] shadow-md font-mono">
+        <div className="flex items-center gap-1 bg-[#F2F0EB] px-2 py-0.5 border border-[#1A1A1A]/15 text-[#1A1A1A]">
+          <span className="text-[10px] text-[#1A1A1A]/50 font-bold uppercase">Base Layer:</span>
+          <select
+            value={mapEngine}
+            onChange={(e: any) => setMapEngine(e.target.value)}
+            className="bg-transparent border-none text-[10px] font-bold text-[#1A1A1A] outline-none cursor-pointer pr-1 font-mono uppercase"
+          >
+            <option value="leaflet">Leaflet (Dark)</option>
+            <option value="maplibre">MapLibre GL</option>
+            <option value="openlayers">OpenLayers</option>
+            <option value="google-road">Google Roads</option>
+            <option value="google-satellite">Google Satellite</option>
+          </select>
+        </div>
+
         <button
           onClick={() => setShowHeatmap(!showHeatmap)}
           className={`px-2.5 py-1 transition-colors flex items-center gap-1.5 cursor-pointer uppercase font-bold border-none ${
@@ -290,7 +338,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
       {/* Map Watermark & Live Time */}
       <div className="absolute top-3 right-3 bg-white/95 border border-[#1A1A1A] px-3 py-1 text-[11px] font-mono text-[#1A1A1A] flex items-center gap-2 z-[1000] shadow-sm font-bold">
         <span className="w-2.5 h-2.5 rounded-full bg-[#D93B2D] animate-pulse" />
-        <span>{CITIES[selectedCity].name.toUpperCase()} RADAR</span>
+        <span>{watermarkText}</span>
         <span className="text-[#D93B2D] font-bold">15:34 IST</span>
       </div>
     </div>

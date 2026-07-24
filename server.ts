@@ -411,6 +411,18 @@ const GAZETTEER: Record<string, [number, number]> = {
 async function geocode(query: string, tomtomKey?: string, city?: string): Promise<[number, number] | null> {
   const norm = query.toLowerCase().trim();
   
+  // Coordinate regex check (e.g. "28.6315,77.2167")
+  const coordsRegex = /^(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)$/;
+  const coordsMatch = norm.match(coordsRegex);
+  if (coordsMatch) {
+    const lat = parseFloat(coordsMatch[1]);
+    const lng = parseFloat(coordsMatch[2]);
+    if (!isNaN(lat) && !isNaN(lng)) {
+      console.log(`[Coordinate Ingestion] Parsed coordinates directly: [${lat}, ${lng}]`);
+      return [lat, lng];
+    }
+  }
+
   if (!city || city.toLowerCase() === 'delhi') {
     for (const [key, val] of Object.entries(GAZETTEER)) {
       if (norm.includes(key)) {
