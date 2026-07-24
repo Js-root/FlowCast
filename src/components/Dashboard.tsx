@@ -35,6 +35,9 @@ interface DashboardProps {
   dispatchLogs: DispatchLogEntry[];
   onDeployRoute: (route: RouteOption) => void;
 
+  selectedCity: string;
+  onSelectCity: (city: string) => void;
+
   onOpenDemoModal: () => void;
   onNavigateToRoutePlanner: () => void;
   onTriggerFakeNews?: () => void;
@@ -60,6 +63,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
   availableRoutes,
   dispatchLogs,
   onDeployRoute,
+
+  selectedCity,
+  onSelectCity,
 
   onOpenDemoModal,
   onNavigateToRoutePlanner,
@@ -357,6 +363,20 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 </button>
               </div>
             )}
+            <div className="relative w-full border border-[#1A1A1A]/20 shadow-sm bg-[#101415] overflow-hidden">
+              {/* Interactive Vector Map Canvas */}
+              <InteractiveMap
+                nodes={nodes}
+                incidents={incidents}
+                selectedIncident={selectedIncident}
+                onSelectIncident={onSelectIncidentId}
+                selectedNodeId={selectedNodeId}
+                onSelectNode={setSelectedNodeId}
+                forecastMinutesAhead={forecastMinutes}
+                detourPositions={selectedRoute?.polylinePositions}
+                selectedRouteIsAiRecommended={selectedRoute?.isAiRecommended}
+                selectedCity={selectedCity}
+              />
 
             {/* Map Preview Frame — Fills full available vertical height */}
             <div className="relative w-full flex-1 min-h-[480px] border border-[#1A1A1A]/30 shadow-lg bg-[#101415] overflow-hidden group flex flex-col">

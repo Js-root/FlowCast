@@ -10,6 +10,7 @@ import { radiusAt, severityToColor } from '../utils/radiusAt';
 import { isIncidentConfirmed } from '../utils/verification';
 import { DELHI_CENTER, DELHI_NCR_BOUNDS, DEFAULT_ZOOM, MIN_ZOOM, MAX_ZOOM, TILE_LAYER_URL, TRAFFIC_FLOW_TILE_URL } from '../constants/map';
 import { FEATURES } from '../constants/features';
+import { CITIES } from '../constants/cities';
 
 interface InteractiveMapProps {
   nodes: TrafficNode[];
@@ -31,7 +32,19 @@ const MapController: React.FC<{
   selectedIncident: Incident | null;
   userLocation?: { lat: number; lng: number; name?: string } | null;
 }> = ({ selectedIncident, userLocation }) => {
+  selectedCity: string;
+}
+
+// Inner subcomponent to handle programmatic map viewport transitions
+const MapController: React.FC<{ selectedIncident: Incident | null; selectedCity: string; center: [number, number] }> = ({ selectedIncident, selectedCity, center }) => {
   const map = useMap();
+
+  useEffect(() => {
+    map.flyTo(center, 12, {
+      animate: true,
+      duration: 1.5,
+    });
+  }, [selectedCity, center, map]);
 
   useEffect(() => {
     if (selectedIncident) {
@@ -82,6 +95,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   selectedRouteIsAiRecommended,
   fillContainer = false,
   userLocation,
+  selectedCity,
 }) => {
   const [showHeatmap, setShowHeatmap] = useState(FEATURES.heatmap);
   const [showIncidents, setShowIncidents] = useState(true);
@@ -98,8 +112,41 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
     const int = setInterval(updateTime, 60000);
     return () => clearInterval(int);
   }, []);
+  const [mapEngine, setMapEngine] = useState<'leaflet' | 'maplibre' | 'openlayers' | 'google-road' | 'google-satellite'>('leaflet');
 
   const circleRef = useRef<LeafletCircle | null>(null);
+
+  // Dynamic Tile Layer URL computation
+  const tileUrl = React.useMemo(() => {
+    switch (mapEngine) {
+      case 'maplibre':
+        return 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager_labels_under/{z}/{x}/{y}{r}.png';
+      case 'openlayers':
+        return 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+      case 'google-road':
+        return 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}';
+      case 'google-satellite':
+        return 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}';
+      default:
+        return TILE_LAYER_URL; // Leaflet default dark theme
+    }
+  }, [mapEngine]);
+
+  const watermarkText = React.useMemo(() => {
+    const cityName = CITIES[selectedCity].name.toUpperCase();
+    switch (mapEngine) {
+      case 'maplibre':
+        return `${cityName} (MAPLIBRE GL)`;
+      case 'openlayers':
+        return `${cityName} (OPENLAYERS)`;
+      case 'google-road':
+        return `${cityName} (GOOGLE ROADMAP)`;
+      case 'google-satellite':
+        return `${cityName} (GOOGLE SATELLITE)`;
+      default:
+        return `${cityName} (LEAFLET RADAR)`;
+    }
+  }, [selectedCity, mapEngine]);
 
   // Auto-open selected incident popup after glide transition finishes
   useEffect(() => {
@@ -131,10 +178,11 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
       {/* Leaflet Map Container */}
       <MapContainer
         center={userLocation ? [userLocation.lat, userLocation.lng] : DELHI_CENTER}
+        center={CITIES[selectedCity].center}
         zoom={DEFAULT_ZOOM}
         minZoom={MIN_ZOOM}
         maxZoom={MAX_ZOOM}
-        maxBounds={DELHI_NCR_BOUNDS}
+        maxBounds={CITIES[selectedCity].bounds}
         maxBoundsViscosity={1.0}
         style={{ height: '100%', width: '100%' }}
         zoomControl={false}
@@ -143,8 +191,9 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
         {/* FlyTo Centering Controller */}
         <MapController selectedIncident={selectedIncident} userLocation={userLocation} />
         <MapResizeHandler />
+        <MapController selectedIncident={selectedIncident} selectedCity={selectedCity} center={CITIES[selectedCity].center} />
 
-        <TileLayer url={TILE_LAYER_URL} />
+        <TileLayer url={tileUrl} />
 
         {/* TomTom Live Traffic Flow Overlay */}
         {showTraffic && TRAFFIC_FLOW_TILE_URL && (
@@ -324,6 +373,21 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
 
       {/* Layer Controls Bar */}
       <div className="absolute bottom-3 left-3 bg-white/95 border border-[#1A1A1A] p-1.5 flex items-center gap-2 text-[11px] z-[1000] shadow-md font-mono">
+        <div className="flex items-center gap-1 bg-[#F2F0EB] px-2 py-0.5 border border-[#1A1A1A]/15 text-[#1A1A1A]">
+          <span className="text-[10px] text-[#1A1A1A]/50 font-bold uppercase">Base Layer:</span>
+          <select
+            value={mapEngine}
+            onChange={(e: any) => setMapEngine(e.target.value)}
+            className="bg-transparent border-none text-[10px] font-bold text-[#1A1A1A] outline-none cursor-pointer pr-1 font-mono uppercase"
+          >
+            <option value="leaflet">Leaflet (Dark)</option>
+            <option value="maplibre">MapLibre GL</option>
+            <option value="openlayers">OpenLayers</option>
+            <option value="google-road">Google Roads</option>
+            <option value="google-satellite">Google Satellite</option>
+          </select>
+        </div>
+
         <button
           onClick={() => setShowTraffic(!showTraffic)}
           className={`px-2.5 py-1 transition-colors flex items-center gap-1.5 cursor-pointer uppercase font-bold border-none ${
@@ -370,6 +434,8 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
         <span className="w-2.5 h-2.5 rounded-full bg-[#D93B2D] animate-pulse" />
         <span>DELHI VECTOR RADAR</span>
         <span className="text-[#D93B2D] font-bold">{currentTime}</span>
+        <span>{watermarkText}</span>
+        <span className="text-[#D93B2D] font-bold">15:34 IST</span>
       </div>
     </div>
   );

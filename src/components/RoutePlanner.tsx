@@ -8,6 +8,7 @@ interface RoutePlannerProps {
   loading: boolean;
   setLoading: (loading: boolean) => void;
   onNavigateToDashboard: () => void;
+  selectedCity: string;
 }
 
 export const RoutePlanner: React.FC<RoutePlannerProps> = ({
@@ -16,17 +17,72 @@ export const RoutePlanner: React.FC<RoutePlannerProps> = ({
   loading,
   setLoading,
   onNavigateToDashboard,
+  selectedCity,
 }) => {
   const [origin, setOrigin] = useState('Connaught Place, New Delhi');
   const [destination, setDestination] = useState('Gurgaon Cyber City, Haryana');
   const [forecastHorizon, setForecastHorizon] = useState(30);
+  const [locating, setLocating] = useState(false);
 
-  const presetPairs = [
-    { from: 'Connaught Place', to: 'Gurgaon Cyber City' },
-    { from: 'Noida Sector 62', to: 'AIIMS Junction' },
-    { from: 'Dwarka Sector 21', to: 'IGI Airport T3' },
-    { from: 'Anand Vihar ISBT', to: 'Nehru Place' },
-  ];
+  const handleGetLocation = () => {
+    if (!navigator.geolocation) {
+      alert("Geolocation is not supported by your browser");
+      return;
+    }
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        setOrigin(`${latitude.toFixed(5)}, ${longitude.toFixed(5)}`);
+        setLocating(false);
+      },
+      (error) => {
+        console.error("Geolocation failed:", error);
+        alert(`Failed to retrieve your location: ${error.message}`);
+        setLocating(false);
+      },
+      { enableHighAccuracy: true, timeout: 8000 }
+    );
+  };
+
+  // Sync origin/destination with city switch
+  React.useEffect(() => {
+    if (selectedCity === 'mumbai') {
+      setOrigin('Bandra Junction, Mumbai');
+      setDestination('Worli Sea Link Entrance, Mumbai');
+    } else if (selectedCity === 'bengaluru') {
+      setOrigin('MG Road Metro, Bengaluru');
+      setDestination('Silk Board Junction, Bengaluru');
+    } else {
+      setOrigin('Connaught Place, New Delhi');
+      setDestination('Gurgaon Cyber City, Haryana');
+    }
+  }, [selectedCity]);
+
+  const presetPairs = React.useMemo(() => {
+    if (selectedCity === 'mumbai') {
+      return [
+        { from: 'Bandra Junction', to: 'Worli Sea Link' },
+        { from: 'Dadar Chowk', to: 'CST Terminus' },
+        { from: 'Powai Lake Crossing', to: 'Andheri WEH Metro' },
+        { from: 'Vashi Bridge Toll', to: 'Kurla East' },
+      ];
+    } else if (selectedCity === 'bengaluru') {
+      return [
+        { from: 'MG Road Metro', to: 'Silk Board Junction' },
+        { from: 'Majestic bus stand', to: 'Electronic City Phase 1 Toll' },
+        { from: 'Hebbal Flyover', to: 'Whitefield Hope Farm' },
+        { from: 'Yeswanthpur Junction', to: 'Koramangala Sony World' },
+      ];
+    } else {
+      return [
+        { from: 'Connaught Place', to: 'Gurgaon Cyber City' },
+        { from: 'Noida Sector 62', to: 'AIIMS Junction' },
+        { from: 'Dwarka Sector 21', to: 'IGI Airport T3' },
+        { from: 'Anand Vihar ISBT', to: 'Nehru Place' },
+      ];
+    }
+  }, [selectedCity]);
 
   const handleAnalyze = async () => {
     setLoading(true);
@@ -38,6 +94,7 @@ export const RoutePlanner: React.FC<RoutePlannerProps> = ({
           origin,
           destination,
           timeHorizonMins: forecastHorizon,
+          city: selectedCity,
         }),
       });
       const data = await res.json();
@@ -73,10 +130,19 @@ export const RoutePlanner: React.FC<RoutePlannerProps> = ({
         {/* Origin / Destination Inputs */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div className="space-y-1.5">
-            <label className="text-xs font-bold font-mono uppercase text-[#D93B2D] tracking-wider flex items-center gap-1.5">
-              <MapPin className="w-4 h-4 text-[#D93B2D]" />
-              <span>Start Location (Origin)</span>
-            </label>
+            <div className="flex justify-between items-center">
+              <label className="text-xs font-bold font-mono uppercase text-[#D93B2D] tracking-wider flex items-center gap-1.5">
+                <MapPin className="w-4 h-4 text-[#D93B2D]" />
+                <span>Start Location (Origin)</span>
+              </label>
+              <button
+                onClick={handleGetLocation}
+                disabled={locating}
+                className="text-[10px] font-mono font-bold text-[#1A1A1A] hover:text-[#D93B2D] bg-[#F2F0EB] hover:bg-[#1A1A1A]/10 px-2 py-0.5 border border-[#1A1A1A]/20 cursor-pointer uppercase flex items-center gap-1 transition-colors"
+              >
+                <span>{locating ? 'Locating...' : '📍 Locate Me'}</span>
+              </button>
+            </div>
             <input
               type="text"
               value={origin}
