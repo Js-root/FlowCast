@@ -18,34 +18,59 @@ export default function App() {
   const [socialSignals, setSocialSignals] = useState<SocialSignal[]>(INITIAL_SOCIAL_SIGNALS);
   const [routes, setRoutes] = useState<RouteOption[]>(PRESET_ROUTES);
   const [demoModalOpen, setDemoModalOpen] = useState(false);
+  const [dataLive, setDataLive] = useState(false);
 
+  // Pull real data: TomTom traffic on nodes + Reddit/Groq incidents. Polls every 60s.
+  // Silently keeps seed data if keys are missing or a fetch fails (demo stays alive).
+  // ponytail: 60s poll x 12 nodes fits TomTom free tier for a demo; widen if it 429s.
   useEffect(() => {
-    const fetchLiveData = async () => {
-      try {
-        const res = await fetch('/api/live-data', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ nodes })
-        });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.nodes) setNodes(data.nodes);
-          if (data.incidents) setIncidents(data.incidents);
-        }
-      } catch (err) {
-        console.error('Failed to fetch live data:', err);
+    let alive = true;
+    const pull = async () => {
+      const [t, i] = await Promise.all([
+        fetch('/api/live-traffic').then((r) => r.json()).catch(() => null),
+        fetch('/api/live-incidents').then((r) => r.json()).catch(() => null),
+      ]);
+      if (!alive) return;
+      let live = false;
+      if (t?.success && t.live && Array.isArray(t.nodes) && t.nodes.length) {
+        setNodes(t.nodes);
+        live = true;
       }
+      if (i?.success) {
+        if (Array.isArray(i.incidents) && i.incidents.length) setIncidents(i.incidents);
+        if (Array.isArray(i.signals) && i.signals.length) setSocialSignals(i.signals);
+        if (i.live) live = true;
+      }
+      setDataLive(live);
     };
+    pull();
+    const id = setInterval(pull, 60000);
+    return () => {
+      alive = false;
+      clearInterval(id);
+    };
+  }, []);
 
-    const interval = setInterval(fetchLiveData, 30000);
-    // Fetch once immediately on mount
-    fetchLiveData();
-    return () => clearInterval(interval);
-  }, [nodes]);
-
-  // Trigger scenario handler
-  const handleTriggerIncident = (newInc: Incident) => {
+  // Trigger scenario handler. opts.fake = unverified rumor: add a lone low-reliability
+  // signal, no node/route change, so the cross-validation gate keeps it yellow.
+  const handleTriggerIncident = (newInc: Incident, opts?: { fake?: boolean }) => {
     setIncidents((prev) => [newInc, ...prev]);
+
+    if (opts?.fake) {
+      const rumor: SocialSignal = {
+        id: `sig-${Date.now()}`,
+        timeAgo: 'Just now',
+        platform: 'Citizen Report',
+        handle: '@anon_forward',
+        text: `UNVERIFIED: ${newInc.title} near ${newInc.area}? Forwarded on WhatsApp, no official source yet.`,
+        sentiment: 'warning',
+        reliabilityScore: 41,
+        impactArea: newInc.area,
+      };
+      setSocialSignals((prev) => [rumor, ...prev]);
+      setActiveTab('dashboard');
+      return;
+    }
 
     // Update nodes status to severe
     setNodes((prev) =>
@@ -82,6 +107,21 @@ export default function App() {
     setActiveTab('dashboard');
   };
 
+  // Corroborate an unverified incident with a 2nd independent source -> flips it Confirmed.
+  const handleCorroborate = (inc: Incident) => {
+    const second: SocialSignal = {
+      id: `sig-${Date.now()}`,
+      timeAgo: 'Just now',
+      platform: 'X / Twitter',
+      handle: '@delhi_eyewitness',
+      text: `Confirming ${inc.title} at ${inc.area} — visible from here, traffic building up.`,
+      sentiment: 'negative',
+      reliabilityScore: 86,
+      impactArea: inc.area,
+    };
+    setSocialSignals((prev) => [second, ...prev]);
+  };
+
   return (
     <div className="bg-[#101415] text-[#e0e3e5] min-h-screen flex flex-col font-sans selection:bg-[#3a8dff] selection:text-white">
       {/* Top Bar Header */}
@@ -108,6 +148,8 @@ export default function App() {
               routes={routes}
               onOpenDemoModal={() => setDemoModalOpen(true)}
               onNavigateToRoutePlanner={() => setActiveTab('route-planner')}
+              onCorroborate={handleCorroborate}
+              dataLive={dataLive}
             />
             <FeatureGrid />
           </>
