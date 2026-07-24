@@ -1,4 +1,4 @@
-export type NavTab = 'dashboard' | 'route-planner' | 'about-ai' | 'documentation';
+export type NavTab = 'dashboard' | 'route-planner' | 'documentation';
 
 export type IncidentSeverity = 'severe' | 'heavy' | 'moderate' | 'low';
 export type IncidentCategory = 'collision' | 'waterlogging' | 'rally' | 'signal_failure' | 'vip_movement' | 'construction';

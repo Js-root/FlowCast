@@ -1,20 +1,27 @@
 import React, { useState } from 'react';
 import { NavTab } from '../types';
-import { Menu, X, Radio, ArrowRight } from 'lucide-react';
+import { Menu, X, Radio, Navigation, Loader2, MapPin } from 'lucide-react';
 
 interface HeaderProps {
   activeTab: NavTab;
   setActiveTab: (tab: NavTab) => void;
-  onLaunchDemo: () => void;
+  userLocation?: { lat: number; lng: number; name?: string } | null;
+  onGetUserLocation?: () => void;
+  isLocating?: boolean;
 }
 
-export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab, onLaunchDemo }) => {
+export const Header: React.FC<HeaderProps> = ({ 
+  activeTab, 
+  setActiveTab, 
+  userLocation, 
+  onGetUserLocation, 
+  isLocating 
+}) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navItems: { id: NavTab; label: string }[] = [
     { id: 'dashboard', label: 'Dashboard' },
     { id: 'route-planner', label: 'Route Planner' },
-    { id: 'about-ai', label: 'About AI' },
     { id: 'documentation', label: 'Documentation' },
   ];
 
@@ -29,7 +36,7 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab, onLaunc
         {/* Editorial Brand */}
         <div 
           onClick={() => setActiveTab('dashboard')}
-          className="flex items-center gap-3 cursor-pointer group"
+          className="flex items-center gap-3 cursor-pointer group shrink-0"
         >
           <div className="w-9 h-9 bg-[#1A1A1A] text-white flex items-center justify-center group-hover:bg-[#D93B2D] transition-colors">
             <Radio className="w-5 h-5 text-white animate-pulse" />
@@ -44,35 +51,53 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab, onLaunc
           </div>
         </div>
 
-        {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center gap-8">
-          {navItems.map((item) => {
-            const isActive = activeTab === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => handleTabClick(item.id)}
-                className={`text-xs font-bold uppercase tracking-widest transition-all duration-200 relative py-1 cursor-pointer font-mono ${
-                  isActive
-                    ? 'text-[#D93B2D] font-extrabold border-b-2 border-[#D93B2D]'
-                    : 'text-[#1A1A1A]/65 hover:text-[#1A1A1A]'
-                }`}
-              >
-                {item.label}
-              </button>
-            );
-          })}
-        </nav>
+        {/* Right-aligned Navigation & Location Controls */}
+        <div className="flex items-center gap-4 sm:gap-6 ml-auto">
+          {/* Desktop Navigation */}
+          <nav className="hidden md:flex items-center gap-6 lg:gap-8">
+            {navItems.map((item) => {
+              const isActive = activeTab === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => handleTabClick(item.id)}
+                  className={`text-xs font-bold uppercase tracking-widest transition-all duration-200 relative py-1 cursor-pointer font-mono whitespace-nowrap ${
+                    isActive
+                      ? 'text-[#D93B2D] font-extrabold border-b-2 border-[#D93B2D]'
+                      : 'text-[#1A1A1A]/65 hover:text-[#1A1A1A]'
+                  }`}
+                >
+                  {item.label}
+                </button>
+              );
+            })}
+          </nav>
 
-        {/* Action Button */}
-        <div className="flex items-center gap-3">
-          <button
-            onClick={onLaunchDemo}
-            className="bg-[#1A1A1A] text-white hover:bg-[#D93B2D] transition-all duration-200 px-5 py-2.5 text-xs font-bold uppercase tracking-wider hidden md:flex items-center gap-2 cursor-pointer shadow-sm"
-          >
-            <span>Launch Live Demo</span>
-            <ArrowRight className="w-4 h-4 text-white" />
-          </button>
+          {/* User Location Button */}
+          {onGetUserLocation && (
+            <button
+              onClick={onGetUserLocation}
+              disabled={isLocating}
+              className={`py-1.5 px-3 text-[11px] font-mono font-semibold flex items-center gap-1.5 cursor-pointer transition-all duration-200 border-none rounded-none ${
+                userLocation
+                  ? 'bg-[#1A1A1A]/5 text-[#1A1A1A] hover:bg-[#1A1A1A]/10'
+                  : 'bg-[#1A1A1A] text-white hover:bg-[#D93B2D]'
+              }`}
+              title={userLocation ? `Location: ${userLocation.name || `${userLocation.lat.toFixed(4)}, ${userLocation.lng.toFixed(4)}`}` : 'Locate my position'}
+            >
+              {isLocating ? (
+                <Loader2 className="w-3 h-3 animate-spin" />
+              ) : (
+                <MapPin className={`w-3 h-3 ${userLocation ? 'text-[#D93B2D]' : ''}`} />
+              )}
+              <span className="hidden sm:inline truncate max-w-[130px]">
+                {isLocating ? 'Locating...' : userLocation ? (userLocation.name || 'Located') : 'Locate'}
+              </span>
+              {userLocation && (
+                <span className="w-1.5 h-1.5 rounded-full bg-[#D93B2D] animate-pulse shrink-0" />
+              )}
+            </button>
+          )}
 
           {/* Mobile Hamburger */}
           <button
@@ -104,16 +129,20 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab, onLaunc
               </button>
             );
           })}
-          <button
-            onClick={() => {
-              setMobileMenuOpen(false);
-              onLaunchDemo();
-            }}
-            className="mt-2 w-full bg-[#D93B2D] text-white font-bold uppercase tracking-wider py-3 px-4 flex items-center justify-center gap-2 shadow-sm text-xs"
-          >
-            <span>Launch Live Demo</span>
-            <ArrowRight className="w-4 h-4" />
-          </button>
+
+          {onGetUserLocation && (
+            <button
+              onClick={() => {
+                setMobileMenuOpen(false);
+                onGetUserLocation();
+              }}
+              disabled={isLocating}
+              className="mt-2 w-full bg-[#1A1A1A] text-white font-bold uppercase tracking-wider py-3 px-4 flex items-center justify-center gap-2 text-xs font-mono"
+            >
+              {isLocating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Navigation className="w-4 h-4" />}
+              <span className="truncate">{isLocating ? 'Locating...' : userLocation ? (userLocation.name || 'Update Location') : 'Use My Location'}</span>
+            </button>
+          )}
         </div>
       )}
     </header>
