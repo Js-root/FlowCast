@@ -24,7 +24,8 @@ export const DemoSimulationModal: React.FC<DemoSimulationModalProps> = ({
     delay: number;
     startsIn: number;
     desc: string;
-    coords: { x: number; y: number };
+    lat: number;
+    lng: number;
   }[] = [
     {
       title: 'Monsoon Waterlogging & Pump Failure',
@@ -33,7 +34,8 @@ export const DemoSimulationModal: React.FC<DemoSimulationModalProps> = ({
       delay: 52,
       startsIn: 12,
       desc: '1.8 feet water accumulation reported after torrential 20-minute cloudburst. Buses stalled near New Delhi Railway Station approach.',
-      coords: { x: 50, y: 42 },
+      lat: 28.6330,
+      lng: 77.2260,
     },
     {
       title: 'VVIP Delegation Convoy Movement',
@@ -42,7 +44,8 @@ export const DemoSimulationModal: React.FC<DemoSimulationModalProps> = ({
       delay: 24,
       startsIn: 18,
       desc: '30-minute security traffic hold enforced between IGI Airport Express and Diplomatic Enclave.',
-      coords: { x: 36, y: 58 },
+      lat: 28.5930,
+      lng: 77.1860,
     },
     {
       title: 'Commercial Truck Breakdown & Fuel Spill',
@@ -51,7 +54,8 @@ export const DemoSimulationModal: React.FC<DemoSimulationModalProps> = ({
       delay: 38,
       startsIn: 8,
       desc: 'Heavy axle breakdown blocking 2 central lanes on Ring Road. Diesel oil spill requires fire tender cleanup.',
-      coords: { x: 50, y: 64 },
+      lat: 28.5672,
+      lng: 77.2100,
     },
   ];
 
@@ -68,7 +72,8 @@ export const DemoSimulationModal: React.FC<DemoSimulationModalProps> = ({
       confidencePercent: 98,
       socialSource: 'LIVE DEMO SIMULATOR SIGNAL',
       description: sc.desc,
-      coords: sc.coords,
+      lat: sc.lat,
+      lng: sc.lng,
       cascadingRoads: ['Ring Road South', 'August Kranti Marg', 'Aurobindo Marg'],
     };
 
