@@ -1,6 +1,6 @@
 export type NavTab = 'dashboard' | 'route-planner' | 'about-ai' | 'documentation';
 
-export type IncidentSeverity = 'severe' | 'moderate' | 'low';
+export type IncidentSeverity = 'severe' | 'heavy' | 'moderate' | 'low';
 export type IncidentCategory = 'collision' | 'waterlogging' | 'rally' | 'signal_failure' | 'vip_movement' | 'construction';
 
 export interface Incident {
@@ -15,7 +15,12 @@ export interface Incident {
   socialSource: string;
   description: string;
   coords: { x: number; y: number }; // Percentage coords on Delhi map canvas
+  lat: number;
+  lng: number;
   cascadingRoads: string[];
+  affectedRoads: string[];
+  verificationStatus: 'warning' | 'confirmed';
+  sourcesCount: number;
 }
 
 export interface TrafficNode {
@@ -25,6 +30,8 @@ export interface TrafficNode {
   avgSpeedKmh: number;
   delayMinutes: number;
   coords: { x: number; y: number };
+  lat: number;
+  lng: number;
 }
 
 export interface CameraFeed {
@@ -46,6 +53,7 @@ export interface SocialSignal {
   sentiment: 'negative' | 'neutral' | 'warning';
   reliabilityScore: number;
   impactArea: string;
+  incidentId?: string;
 }
 
 export interface RouteOption {
@@ -59,10 +67,50 @@ export interface RouteOption {
   congestionPoints: string[];
   sparklineData: number[];
   viaRoads: string;
+  etaMinutes: number;
+  predictedDelayMinutes: number;
+  savedMinutes: number;
+  risk: 'low' | 'medium' | 'high';
+  arrivalProbability: number;
+  polylinePositions: [number, number][];
 }
 
 export interface RouteQuery {
   origin: string;
   destination: string;
   forecastMinutesAhead: number;
+}
+
+export interface DispatchLogEntry {
+  id: string;
+  time: string;
+  title: string;
+  details: string;
+  meta?: string;
+  type: 'system' | 'alert' | 'deploy';
+}
+
+export interface RouteAnalysis {
+  standardRoute: {
+    distanceKm: number;
+    etaMinutes: number;
+    delayMinutes: number;
+    polylinePositions: [number, number][];
+    viaRoads: string;
+  };
+  aiRoute: {
+    distanceKm: number;
+    etaMinutes: number;
+    delayMinutes: number;
+    polylinePositions: [number, number][];
+    viaRoads: string;
+  };
+  comparison: {
+    savedMinutes: number;
+    distanceDifference: number;
+    delayMinutes: number;
+    riskLevel: 'low' | 'medium' | 'high';
+  };
+  aiSummary: string;
+  trafficMetrics: string;
 }

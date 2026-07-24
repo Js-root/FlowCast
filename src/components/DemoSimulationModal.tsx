@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Sparkles, Zap, X, Check } from 'lucide-react';
 import { Incident } from '../types';
+import { DEMO_SCENARIOS } from '../data/demoScenarios';
 
 interface DemoSimulationModalProps {
   isOpen: boolean;
@@ -17,46 +18,8 @@ export const DemoSimulationModal: React.FC<DemoSimulationModalProps> = ({
 
   if (!isOpen) return null;
 
-  const scenarios: {
-    title: string;
-    area: string;
-    category: any;
-    delay: number;
-    startsIn: number;
-    desc: string;
-    coords: { x: number; y: number };
-  }[] = [
-    {
-      title: 'Monsoon Waterlogging & Pump Failure',
-      area: 'Minto Road Bridge Underpass',
-      category: 'waterlogging',
-      delay: 52,
-      startsIn: 12,
-      desc: '1.8 feet water accumulation reported after torrential 20-minute cloudburst. Buses stalled near New Delhi Railway Station approach.',
-      coords: { x: 50, y: 42 },
-    },
-    {
-      title: 'VVIP Delegation Convoy Movement',
-      area: 'Sardar Patel Marg / Chanakyapuri',
-      category: 'vip_movement',
-      delay: 24,
-      startsIn: 18,
-      desc: '30-minute security traffic hold enforced between IGI Airport Express and Diplomatic Enclave.',
-      coords: { x: 36, y: 58 },
-    },
-    {
-      title: 'Commercial Truck Breakdown & Fuel Spill',
-      area: 'AIIMS Flyover Ramp towards Moti Bagh',
-      category: 'collision',
-      delay: 38,
-      startsIn: 8,
-      desc: 'Heavy axle breakdown blocking 2 central lanes on Ring Road. Diesel oil spill requires fire tender cleanup.',
-      coords: { x: 50, y: 64 },
-    },
-  ];
-
   const handleApplyScenario = () => {
-    const sc = scenarios[selectedScenario];
+    const sc = DEMO_SCENARIOS[selectedScenario];
     const newInc: Incident = {
       id: `sim-${Date.now()}`,
       title: sc.title,
@@ -69,7 +32,12 @@ export const DemoSimulationModal: React.FC<DemoSimulationModalProps> = ({
       socialSource: 'LIVE DEMO SIMULATOR SIGNAL',
       description: sc.desc,
       coords: sc.coords,
+      lat: sc.lat,
+      lng: sc.lng,
       cascadingRoads: ['Ring Road South', 'August Kranti Marg', 'Aurobindo Marg'],
+      affectedRoads: [sc.area],
+      verificationStatus: 'confirmed',
+      sourcesCount: 18
     };
 
     onTriggerIncident(newInc);
@@ -101,7 +69,7 @@ export const DemoSimulationModal: React.FC<DemoSimulationModalProps> = ({
 
         {/* Scenarios List */}
         <div className="space-y-3">
-          {scenarios.map((sc, idx) => {
+          {DEMO_SCENARIOS.map((sc, idx) => {
             const isSelected = selectedScenario === idx;
             return (
               <div
