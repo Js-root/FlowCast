@@ -53,14 +53,14 @@ export const Documentation: React.FC = () => {
     <div className="w-full max-w-[1200px] mx-auto py-8 px-4 flex flex-col gap-10 animate-fade-up">
       {/* Title */}
       <div className="text-center max-w-2xl mx-auto space-y-2">
-        <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#1A1A1A]/5 border border-[#1A1A1A]/20 text-[#D93B2D] text-xs font-mono font-bold uppercase tracking-widest">
+        <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/5 border border-white/20 text-[#D93B2D] text-xs font-mono font-bold uppercase tracking-widest">
           <Terminal className="w-3.5 h-3.5 text-[#D93B2D]" />
           <span>DEVELOPER & API DOCUMENTATION</span>
         </div>
-        <h2 className="text-4xl sm:text-5xl font-serif font-black text-[#1A1A1A] tracking-tight">
+        <h2 className="text-4xl sm:text-5xl font-serif font-black text-[#F2F0EB] tracking-tight">
           FlowCast Developer Platform
         </h2>
-        <p className="text-base font-serif text-[#1A1A1A]/70">
+        <p className="text-base font-serif text-[#F2F0EB]/75">
           Integrate real-time predictive traffic forecasts into municipal control centers, logistics fleets, and navigation apps.
         </p>
       </div>
