@@ -45,6 +45,8 @@ function mapCityNodesToTrafficNodes(nodesList: any[], cityId: string): TrafficNo
 export default function App() {
   const [activeTab, setActiveTab] = useState<NavTab>('dashboard');
   const [selectedCity, setSelectedCity] = useState<string>('delhi');
+  const [nodes, setNodes] = useState<TrafficNode[]>(() => 
+    CITIES.delhi.nodes.map(n => ({ ...n, avgSpeedKmh: 40, status: 'clear' as const, delayMinutes: 0 }))
   const [nodes, setNodes] = useState<TrafficNode[]>(() =>
     mapCityNodesToTrafficNodes(CITIES.delhi.nodes, 'delhi')
   );
@@ -247,6 +249,32 @@ export default function App() {
       }
     };
     
+    const fetchLiveNodesFlow = async (nodesToFetch: any[]) => {
+      try {
+        const res = await fetch('/api/live-nodes-flow', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nodes: nodesToFetch, cityId: selectedCity })
+        });
+        if (!res.ok) throw new Error('Live nodes request failed');
+        const data = await res.json();
+        if (data.success && data.nodes) {
+          setNodes(data.nodes);
+        }
+      } catch (err) {
+        console.warn('Failed to load live node telemetry.', err);
+      }
+    };
+    
+    // Set base nodes for city
+    const baseNodes = CITIES[selectedCity].nodes.map(n => ({
+      ...n,
+      avgSpeedKmh: 40,
+      status: 'clear' as const,
+      delayMinutes: 0
+    }));
+    setNodes(baseNodes);
+    
     // Set nodes for city
     setNodes(mapCityNodesToTrafficNodes(CITIES[selectedCity].nodes, selectedCity));
     // Reset selected route override/analysis on city change
@@ -254,6 +282,13 @@ export default function App() {
     setSelectedRouteIdOverride(null);
 
     fetchLiveIncidents();
+    fetchLiveNodesFlow(baseNodes);
+
+    const telemetryInterval = setInterval(() => {
+      fetchLiveNodesFlow(baseNodes);
+    }, 15000);
+
+    return () => clearInterval(telemetryInterval);
   }, [selectedCity]);
 
   const handleReloadLiveIncidents = async () => {

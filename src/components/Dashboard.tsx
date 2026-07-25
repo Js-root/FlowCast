@@ -439,30 +439,19 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 <span className="text-emerald-700 font-bold">● Live Updates</span>
               </div>
               <div className="space-y-1.5 font-mono text-[11px] flex-1">
-                <div className="flex justify-between items-center p-2 bg-[#F2F0EB]">
-                  <span className="text-[#1A1A1A] font-semibold">Ring Road Corridor</span>
-                  <span className="text-[#D93B2D] font-bold">18 km/h</span>
-                </div>
-                <div className="flex justify-between items-center p-2 bg-[#F2F0EB]">
-                  <span className="text-[#1A1A1A] font-semibold">DND Flyway</span>
-                  <span className="text-emerald-700 font-bold">52 km/h</span>
-                </div>
-                <div className="flex justify-between items-center p-2 bg-[#F2F0EB]">
-                  <span className="text-[#1A1A1A] font-semibold">Connaught Place Circle</span>
-                  <span className="text-[#D97706] font-bold">24 km/h</span>
-                </div>
-                <div className="flex justify-between items-center p-2 bg-[#F2F0EB]">
-                  <span className="text-[#1A1A1A] font-semibold">NH-44 Bypass</span>
-                  <span className="text-[#D93B2D] font-bold">14 km/h</span>
-                </div>
-                <div className="flex justify-between items-center p-2 bg-[#F2F0EB]">
-                  <span className="text-[#1A1A1A] font-semibold">Barapullah Elevated Corridor</span>
-                  <span className="text-emerald-700 font-bold">45 km/h</span>
-                </div>
-                <div className="flex justify-between items-center p-2 bg-[#F2F0EB]">
-                  <span className="text-[#1A1A1A] font-semibold">Mathura Road Junction</span>
-                  <span className="text-[#D97706] font-bold">21 km/h</span>
-                </div>
+                {nodes.slice(0, 6).map((node) => {
+                  let speedColor = 'text-[#1A1A1A]';
+                  if (node.status === 'severe') speedColor = 'text-[#D93B2D]';
+                  else if (node.status === 'heavy') speedColor = 'text-[#D97706]';
+                  else if (node.status === 'clear') speedColor = 'text-emerald-700';
+
+                  return (
+                    <div key={node.id} className="flex justify-between items-center p-2 bg-[#F2F0EB]">
+                      <span className="text-[#1A1A1A] font-semibold truncate pr-2">{node.name}</span>
+                      <span className={`${speedColor} font-bold shrink-0`}>{node.avgSpeedKmh || '--'} km/h</span>
+                    </div>
+                  );
+                })}
               </div>
 
               {/* Sensor Health Footer Bar */}
@@ -478,7 +467,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </div>
 
           {/* Center Map View & Live Floating Prediction Overlay */}
-          <div className="lg:col-span-6 flex flex-col gap-4 h-full min-h-[520px]">
+          <div className="lg:col-span-6 flex flex-col gap-4 h-full min-h-[420px]">
             {activeRouteAnalysis && (
               <div className="bg-emerald-700/10 border border-emerald-600/30 text-emerald-800 p-3 text-xs font-mono flex items-center justify-between animate-fade-up">
                 <span className="font-semibold">📍 Live GPS Route Analysis active: Standard vs AI Bypass Detour.</span>
@@ -490,8 +479,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 </button>
               </div>
             )}
-            {/* Map Preview Frame — Fills full available vertical height */}
-            <div className="relative w-full flex-1 min-h-[480px] border border-[#1A1A1A]/30 shadow-lg bg-[#101415] overflow-hidden group flex flex-col">
+            {/* Map Preview Frame — Square Aspect Ratio */}
+            <div className="relative w-full aspect-square border border-[#1A1A1A]/30 shadow-lg bg-[#F2F0EB] overflow-hidden group flex flex-col mx-auto max-w-[600px]">
               
               {/* Window Header Bar */}
               <div className="bg-[#1A1A1A] border-b border-white/10 px-4 py-2 flex items-center justify-between z-20 relative shrink-0">
@@ -530,12 +519,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   detourPositions={selectedRoute?.polylinePositions}
                   selectedRouteIsAiRecommended={selectedRoute?.isAiRecommended}
                   userLocation={userLocation}
-                  fillContainer
                   selectedCity={selectedCity}
+                  fillContainer
                 />
               )}
               {isMapModalOpen && (
-                <div className="flex-1 w-full bg-[#16191A] flex items-center justify-center">
+                <div className="flex-1 w-full bg-[#F2F0EB] flex items-center justify-center">
                   <span className="text-[11px] font-mono text-white/50 uppercase tracking-wider">Map open in radar view…</span>
                 </div>
               )}
@@ -626,7 +615,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </div>
 
             {/* Map body: flex child with absolute fill so Leaflet always gets a real height */}
-            <div className="relative flex-1 min-h-0 bg-[#101415]" style={{ isolation: 'isolate' }}>
+            <div className="relative flex-1 min-h-0 bg-[#F2F0EB]" style={{ isolation: 'isolate' }}>
               <div className="absolute inset-0">
                 <InteractiveMap
                   nodes={nodes}
@@ -638,9 +627,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   forecastMinutesAhead={forecastMinutes}
                   detourPositions={selectedRoute?.polylinePositions}
                   selectedRouteIsAiRecommended={selectedRoute?.isAiRecommended}
-                  fillContainer
                   selectedCity={selectedCity}
                   userLocation={userLocation}
+                  fillContainer
                 />
               </div>
 
@@ -655,15 +644,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 </div>
                 <div className="text-xs text-[#1A1A1A]/80 flex items-center gap-1.5 font-medium font-sans">
                   <Clock className="w-3.5 h-3.5 text-[#D93B2D]" />
-                  <span>
-                    {selectedIncident && calculateStartsInMinutes(selectedIncident.startsInMinutes, forecastMinutes) === 0 ? (
-                      <span className="text-[#D93B2D] font-mono font-bold uppercase tracking-wider">Disruption Active</span>
-                    ) : (
-                      <>
-                        Cascade starts in <span className="text-[#D93B2D] font-mono font-bold">{selectedIncident ? calculateStartsInMinutes(selectedIncident.startsInMinutes, forecastMinutes) : 24} mins</span>
-                      </>
-                    )}
-                  </span>
+                  <span className="text-[#D93B2D] font-mono font-bold uppercase tracking-wider">Disruption Active</span>
                 </div>
 
                 {selectedIncident && (
