@@ -45,8 +45,6 @@ function mapCityNodesToTrafficNodes(nodesList: any[], cityId: string): TrafficNo
 export default function App() {
   const [activeTab, setActiveTab] = useState<NavTab>('dashboard');
   const [selectedCity, setSelectedCity] = useState<string>('delhi');
-  const [nodes, setNodes] = useState<TrafficNode[]>(() => 
-    CITIES.delhi.nodes.map(n => ({ ...n, avgSpeedKmh: 40, status: 'clear' as const, delayMinutes: 0 }))
   const [nodes, setNodes] = useState<TrafficNode[]>(() =>
     mapCityNodesToTrafficNodes(CITIES.delhi.nodes, 'delhi')
   );
