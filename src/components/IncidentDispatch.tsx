@@ -48,7 +48,7 @@ export const IncidentDispatch: React.FC<IncidentDispatchProps> = ({
       </div>
 
       {/* Incident List */}
-      <div className="space-y-2.5 flex-1 min-h-[300px] overflow-y-auto pr-1">
+      <div className="space-y-2.5 flex-1 min-h-[300px] max-h-[350px] overflow-y-auto pr-2 custom-scrollbar">
         {incidents.length === 0 ? (
           <div className="text-xs text-[#1A1A1A]/50 font-mono py-8 text-center bg-gray-50 border border-dashed border-[#1A1A1A]/10">
             No active incidents detected.

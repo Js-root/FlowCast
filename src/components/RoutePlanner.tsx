@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { RouteAnalysis } from '../types';
 import { Sparkles, MapPin, Navigation, Clock } from 'lucide-react';
+import { InteractiveMap } from './InteractiveMap';
 
 interface RoutePlannerProps {
   activeRouteAnalysis: RouteAnalysis | null;
@@ -26,9 +27,10 @@ export const RoutePlanner: React.FC<RoutePlannerProps> = ({
 
   const handleGetLocation = () => {
     if (!navigator.geolocation) {
-      alert("Geolocation is not supported by your browser");
+      alert('Geolocation is not supported by your browser');
       return;
     }
+
     setLocating(true);
     navigator.geolocation.getCurrentPosition(
       (position) => {
@@ -37,7 +39,7 @@ export const RoutePlanner: React.FC<RoutePlannerProps> = ({
         setLocating(false);
       },
       (error) => {
-        console.error("Geolocation failed:", error);
+        console.error('Geolocation failed:', error);
         alert(`Failed to retrieve your location: ${error.message}`);
         setLocating(false);
       },
@@ -45,7 +47,6 @@ export const RoutePlanner: React.FC<RoutePlannerProps> = ({
     );
   };
 
-  // Sync origin/destination with city switch
   React.useEffect(() => {
     if (selectedCity === 'mumbai') {
       setOrigin('Bandra Junction, Mumbai');
@@ -67,21 +68,23 @@ export const RoutePlanner: React.FC<RoutePlannerProps> = ({
         { from: 'Powai Lake Crossing', to: 'Andheri WEH Metro' },
         { from: 'Vashi Bridge Toll', to: 'Kurla East' },
       ];
-    } else if (selectedCity === 'bengaluru') {
+    }
+
+    if (selectedCity === 'bengaluru') {
       return [
         { from: 'MG Road Metro', to: 'Silk Board Junction' },
         { from: 'Majestic bus stand', to: 'Electronic City Phase 1 Toll' },
         { from: 'Hebbal Flyover', to: 'Whitefield Hope Farm' },
         { from: 'Yeswanthpur Junction', to: 'Koramangala Sony World' },
       ];
-    } else {
-      return [
-        { from: 'Connaught Place', to: 'Gurgaon Cyber City' },
-        { from: 'Noida Sector 62', to: 'AIIMS Junction' },
-        { from: 'Dwarka Sector 21', to: 'IGI Airport T3' },
-        { from: 'Anand Vihar ISBT', to: 'Nehru Place' },
-      ];
     }
+
+    return [
+      { from: 'Connaught Place', to: 'Gurgaon Cyber City' },
+      { from: 'Noida Sector 62', to: 'AIIMS Junction' },
+      { from: 'Dwarka Sector 21', to: 'IGI Airport T3' },
+      { from: 'Anand Vihar ISBT', to: 'Nehru Place' },
+    ];
   }, [selectedCity]);
 
   const handleAnalyze = async () => {
@@ -97,24 +100,23 @@ export const RoutePlanner: React.FC<RoutePlannerProps> = ({
           city: selectedCity,
         }),
       });
-      
+
       if (res.ok) {
         const data = await res.json();
         if (data.success) {
           setActiveRouteAnalysis(data);
-          onNavigateToDashboard();
           return;
         }
       }
-      throw new Error("Server returned unsuccessful response status");
+
+      throw new Error('Server returned unsuccessful response status');
     } catch (err) {
       console.warn('Route analysis endpoint failed. Generating robust client-side fallback:', err);
-      
-      // Determine centers
+
       const centers: Record<string, [number, number]> = {
         delhi: [28.6139, 77.2090],
         mumbai: [19.0760, 72.8777],
-        bengaluru: [12.9716, 77.5946]
+        bengaluru: [12.9716, 77.5946],
       };
       const center = centers[selectedCity] || centers.delhi;
       const start = center;
@@ -124,6 +126,7 @@ export const RoutePlanner: React.FC<RoutePlannerProps> = ({
         const points: [number, number][] = [];
         const segments = 6;
         points.push(s);
+
         for (let i = 1; i < segments; i++) {
           const ratio = i / segments;
           const baseLat = s[0] + (e[0] - s[0]) * ratio;
@@ -133,6 +136,7 @@ export const RoutePlanner: React.FC<RoutePlannerProps> = ({
           const lngOffset = wave * 0.007 * -offsetDir * (i % 3 === 0 ? 1.15 : 0.85);
           points.push([baseLat + latOffset, baseLng + lngOffset]);
         }
+
         points.push(e);
         return points;
       };
@@ -146,35 +150,35 @@ export const RoutePlanner: React.FC<RoutePlannerProps> = ({
           etaMinutes: 45,
           delayMinutes: 23,
           polylinePositions: standardPoints,
-          viaRoads: selectedCity === 'mumbai' ? "WEH Expressway" : selectedCity === 'bengaluru' ? "ORR Ring Road" : "Pragati Tunnel Radial Path"
+          viaRoads: selectedCity === 'mumbai' ? 'WEH Expressway' : selectedCity === 'bengaluru' ? 'ORR Ring Road' : 'Pragati Tunnel Radial Path',
         },
         aiRoute: {
           distanceKm: 15.6,
           etaMinutes: 28,
           delayMinutes: 6,
           polylinePositions: aiPoints,
-          viaRoads: selectedCity === 'mumbai' ? "Bandra-Worli Bypass" : selectedCity === 'bengaluru' ? "Sarjapur Detour Road" : "AI Detour Corridor"
+          viaRoads: selectedCity === 'mumbai' ? 'Bandra-Worli Bypass' : selectedCity === 'bengaluru' ? 'Sarjapur Detour Road' : 'AI Detour Corridor',
         },
         comparison: {
           savedMinutes: 17,
           distanceDifference: 0.8,
           delayMinutes: 17,
-          riskLevel: "high"
+          riskLevel: 'high',
         },
-        aiSummary: `Standard path faces heavy traffic accumulation (+23m delay). Bypassing via the AI Detour option saves approximately 17 minutes.`,
-        trafficMetrics: `Sensor arrays report severe tailbacks along standard radial segments.`
+        aiSummary: 'Standard path faces heavy traffic accumulation (+23m delay). Bypassing via the AI Detour option saves approximately 17 minutes.',
+        trafficMetrics: 'Sensor arrays report severe tailbacks along standard radial segments.',
       };
 
       setActiveRouteAnalysis(fallbackData);
-      onNavigateToDashboard();
     } finally {
       setLoading(false);
     }
   };
 
+  const previewRoute = activeRouteAnalysis?.aiRoute;
+
   return (
     <div className="w-full max-w-[1200px] mx-auto py-8 px-4 flex flex-col gap-8 animate-fade-up">
-      {/* Title Header */}
       <div className="text-center max-w-2xl mx-auto space-y-2">
         <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/5 border border-white/20 text-[#D93B2D] text-xs font-mono font-bold uppercase tracking-widest">
           <Sparkles className="w-3.5 h-3.5 text-[#D93B2D]" />
@@ -188,9 +192,7 @@ export const RoutePlanner: React.FC<RoutePlannerProps> = ({
         </p>
       </div>
 
-      {/* Query Card */}
       <div className="bg-white border border-[#1A1A1A]/15 p-6 md:p-8 shadow-sm flex flex-col gap-6">
-        {/* Origin / Destination Inputs */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div className="space-y-1.5">
             <div className="flex justify-between items-center">
@@ -230,7 +232,6 @@ export const RoutePlanner: React.FC<RoutePlannerProps> = ({
           </div>
         </div>
 
-        {/* Quick Presets */}
         <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-[#1A1A1A]/10">
           <span className="text-xs text-[#1A1A1A]/60 font-mono font-bold uppercase mr-2">Popular Presets:</span>
           {presetPairs.map((pair, idx) => (
@@ -247,7 +248,6 @@ export const RoutePlanner: React.FC<RoutePlannerProps> = ({
           ))}
         </div>
 
-        {/* Time Horizon Slider + Submit Button */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-[#1A1A1A]/10">
           <div className="flex items-center gap-3">
             <Clock className="w-5 h-5 text-[#D93B2D]" />
@@ -280,7 +280,80 @@ export const RoutePlanner: React.FC<RoutePlannerProps> = ({
           </button>
         </div>
       </div>
+
+      {previewRoute && (
+        <div className="bg-white border border-[#1A1A1A]/15 shadow-sm overflow-hidden">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 px-6 py-4 border-b border-[#1A1A1A]/10 bg-[#F2F0EB]">
+            <div className="space-y-1">
+              <div className="text-[11px] font-mono font-bold uppercase tracking-widest text-[#D93B2D]">Preview Map</div>
+              <h3 className="text-xl font-serif font-bold text-[#1A1A1A]">Planned AI Route</h3>
+              <p className="text-sm text-[#1A1A1A]/70">
+                The recommended route is drawn directly in the planner so you can inspect the corridor before switching tabs.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 text-xs font-mono font-bold uppercase">
+              <span className="px-3 py-1 border border-[#1A1A1A]/20 bg-white text-[#1A1A1A]">ETA {previewRoute.etaMinutes} mins</span>
+              <span className="px-3 py-1 border border-emerald-600/30 bg-emerald-50 text-emerald-700">Saved {activeRouteAnalysis.comparison.savedMinutes} mins</span>
+              <button
+                onClick={onNavigateToDashboard}
+                className="px-3 py-1 border border-[#1A1A1A] bg-[#1A1A1A] text-white hover:bg-[#D93B2D] transition-colors cursor-pointer"
+              >
+                Open Dashboard
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.7fr)_minmax(280px,1fr)] gap-0">
+            <div className="p-4 md:p-5 bg-[#F2F0EB]">
+              <InteractiveMap
+                nodes={[]}
+                incidents={[]}
+                selectedIncident={null}
+                onSelectIncident={() => {}}
+                selectedNodeId={null}
+                onSelectNode={() => {}}
+                forecastMinutesAhead={forecastHorizon}
+                detourPositions={previewRoute.polylinePositions}
+                selectedRouteIsAiRecommended={true}
+                selectedCity={selectedCity}
+                fillContainer={false}
+              />
+            </div>
+
+            <div className="p-6 flex flex-col gap-4 border-t lg:border-t-0 lg:border-l border-[#1A1A1A]/10">
+              <div>
+                <div className="text-[11px] font-mono font-bold uppercase tracking-widest text-[#D93B2D]">Route Summary</div>
+                <div className="mt-1 text-lg font-serif font-bold text-[#1A1A1A]">{previewRoute.viaRoads}</div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-[#F2F0EB] border border-[#1A1A1A]/10 p-3">
+                  <div className="text-[10px] font-mono font-bold uppercase text-[#1A1A1A]/55">Distance</div>
+                  <div className="text-base font-semibold text-[#1A1A1A] mt-1">{previewRoute.distanceKm} km</div>
+                </div>
+                <div className="bg-[#F2F0EB] border border-[#1A1A1A]/10 p-3">
+                  <div className="text-[10px] font-mono font-bold uppercase text-[#1A1A1A]/55">Delay</div>
+                  <div className="text-base font-semibold text-[#1A1A1A] mt-1">{previewRoute.delayMinutes} mins</div>
+                </div>
+                <div className="bg-[#F2F0EB] border border-[#1A1A1A]/10 p-3">
+                  <div className="text-[10px] font-mono font-bold uppercase text-[#1A1A1A]/55">ETA</div>
+                  <div className="text-base font-semibold text-[#1A1A1A] mt-1">{previewRoute.etaMinutes} mins</div>
+                </div>
+                <div className="bg-[#F2F0EB] border border-[#1A1A1A]/10 p-3">
+                  <div className="text-[10px] font-mono font-bold uppercase text-[#1A1A1A]/55">Risk</div>
+                  <div className="text-base font-semibold text-[#1A1A1A] mt-1 capitalize">{activeRouteAnalysis.comparison.riskLevel}</div>
+                </div>
+              </div>
+
+              <div className="text-sm text-[#1A1A1A]/75 leading-relaxed font-sans">
+                {activeRouteAnalysis.aiSummary}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
+
 export default RoutePlanner;

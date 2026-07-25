@@ -74,7 +74,8 @@ const MapController: React.FC<{
   selectedCity?: string; 
   center?: [number, number];
   userLocation?: { lat: number; lng: number; name?: string } | null;
-}> = ({ selectedIncident, selectedCity, center, userLocation }) => {
+  detourPositions?: [number, number][];
+}> = ({ selectedIncident, selectedCity, center, userLocation, detourPositions }) => {
   const map = useMap();
 
   useEffect(() => {
@@ -99,6 +100,17 @@ const MapController: React.FC<{
       });
     }
   }, [selectedIncident, userLocation, map]);
+
+  useEffect(() => {
+    if (!selectedIncident && !userLocation && detourPositions && detourPositions.length > 1) {
+      map.fitBounds(detourPositions, {
+        animate: true,
+        duration: 1.2,
+        padding: [40, 40],
+        maxZoom: 14,
+      });
+    }
+  }, [detourPositions, selectedIncident, userLocation, map]);
 
   return null;
 };
@@ -230,7 +242,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
         attributionControl={false}
       >
         {/* FlyTo Centering Controller */}
-        <MapController selectedIncident={selectedIncident} selectedCity={selectedCity} center={CITIES[selectedCity].center} userLocation={userLocation} />
+        <MapController selectedIncident={selectedIncident} selectedCity={selectedCity} center={CITIES[selectedCity].center} userLocation={userLocation} detourPositions={detourPositions} />
         <MapResizeHandler />
 
         <TileLayer url={tileUrl} />

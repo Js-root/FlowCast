@@ -395,7 +395,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   userLocation={userLocation}
                   selectedCity={selectedCity}
                   fillContainer
-                  selectedCity={selectedCity}
                 />
               )}
               {isMapModalOpen && (
@@ -505,8 +504,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   selectedCity={selectedCity}
                   userLocation={userLocation}
                   fillContainer
-                  selectedCity={selectedCity}
-                  userLocation={userLocation}
                 />
               </div>
 
