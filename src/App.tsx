@@ -14,11 +14,41 @@ import { Footer } from './components/Footer';
 import { useRouteSelection } from './hooks/useRouteSelection';
 import { AlertTriangle } from 'lucide-react';
 
+function mapCityNodesToTrafficNodes(nodesList: any[], cityId: string): TrafficNode[] {
+  return nodesList.map((node, index) => {
+    // Deterministically generate a realistic speed for each node based on its name/index
+    const isCongestedNode = node.name.includes("Bypass") || node.name.includes("Subway") || node.name.includes("Silk Board") || index % 3 === 0;
+    const avgSpeedKmh = isCongestedNode
+      ? Math.floor(Math.random() * 15) + 12 // 12-27 km/h (heavy/severe)
+      : Math.floor(Math.random() * 25) + 38; // 38-63 km/h (clear/moderate)
+    
+    let status: 'clear' | 'moderate' | 'heavy' | 'severe' = 'clear';
+    if (avgSpeedKmh < 18) status = 'severe';
+    else if (avgSpeedKmh < 28) status = 'heavy';
+    else if (avgSpeedKmh < 42) status = 'moderate';
+    
+    const delayMinutes = status === 'severe' ? 14 : status === 'heavy' ? 7 : status === 'moderate' ? 3 : 0;
+
+    return {
+      id: node.id,
+      name: node.name,
+      lat: node.lat,
+      lng: node.lng,
+      coords: { x: node.x, y: node.y },
+      avgSpeedKmh,
+      status,
+      delayMinutes
+    };
+  });
+}
+
 export default function App() {
   const [activeTab, setActiveTab] = useState<NavTab>('dashboard');
   const [selectedCity, setSelectedCity] = useState<string>('delhi');
   const [nodes, setNodes] = useState<TrafficNode[]>(() => 
     CITIES.delhi.nodes.map(n => ({ ...n, avgSpeedKmh: 40, status: 'clear' as const, delayMinutes: 0 }))
+  const [nodes, setNodes] = useState<TrafficNode[]>(() =>
+    mapCityNodesToTrafficNodes(CITIES.delhi.nodes, 'delhi')
   );
   const [incidents, setIncidents] = useState<Incident[]>(INITIAL_INCIDENTS);
   const [socialSignals, setSocialSignals] = useState<SocialSignal[]>(INITIAL_SOCIAL_SIGNALS);
@@ -245,6 +275,8 @@ export default function App() {
     }));
     setNodes(baseNodes);
     
+    // Set nodes for city
+    setNodes(mapCityNodesToTrafficNodes(CITIES[selectedCity].nodes, selectedCity));
     // Reset selected route override/analysis on city change
     setActiveRouteAnalysis(null);
     setSelectedRouteIdOverride(null);

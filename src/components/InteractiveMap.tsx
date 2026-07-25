@@ -53,6 +53,37 @@ const STORM_CELLS: Record<string, { lat: number; lng: number; radius: number }[]
   ]
 };
 
+interface RoadSegment {
+  from: TrafficNode;
+  to: TrafficNode;
+}
+
+function getMockRoadSegments(nodesList: TrafficNode[]): RoadSegment[] {
+  const segments: RoadSegment[] = [];
+  const seen = new Set<string>();
+
+  nodesList.forEach((node) => {
+    const targets = nodesList
+      .filter((n) => n.id !== node.id)
+      .map((n) => {
+        const dist = Math.pow(n.lat - node.lat, 2) + Math.pow(n.lng - node.lng, 2);
+        return { node: n, dist };
+      })
+      .sort((a, b) => a.dist - b.dist)
+      .slice(0, 2);
+
+    targets.forEach((target) => {
+      const key = [node.id, target.node.id].sort().join('-');
+      if (!seen.has(key)) {
+        seen.add(key);
+        segments.push({ from: node, to: target.node });
+      }
+    });
+  });
+
+  return segments;
+}
+
 interface InteractiveMapProps {
   nodes: TrafficNode[];
   incidents: Incident[];
@@ -247,13 +278,41 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
 
         <TileLayer url={tileUrl} />
 
-        {/* TomTom Live Traffic Flow Overlay */}
-        {showTraffic && TRAFFIC_FLOW_TILE_URL && (
-          <TileLayer
-            url={TRAFFIC_FLOW_TILE_URL}
-            opacity={0.7}
-            zIndex={2}
-          />
+        {/* TomTom Live Traffic Flow Overlay / Mock Local Flow Network Fallback */}
+        {showTraffic && (
+          (import.meta as any).env.VITE_TOMTOM_API_KEY ? (
+            <TileLayer
+              url={TRAFFIC_FLOW_TILE_URL}
+              opacity={0.65}
+              zIndex={10}
+            />
+          ) : (
+            <LayerGroup>
+              {getMockRoadSegments(nodes).map((seg, idx) => {
+                const avgSpeedKmh = (seg.from.avgSpeedKmh + seg.to.avgSpeedKmh) / 2;
+                const statusColor = avgSpeedKmh < 18 
+                  ? '#EF4444' // Red
+                  : avgSpeedKmh < 28 
+                    ? '#F59E0B' // Orange
+                    : avgSpeedKmh < 42 
+                      ? '#3B82F6' // Blue
+                      : '#10B981'; // Green
+                
+                return (
+                  <Polyline
+                    key={`mock-road-${idx}`}
+                    positions={[[seg.from.lat, seg.from.lng], [seg.to.lat, seg.to.lng]]}
+                    pathOptions={{
+                      color: statusColor,
+                      weight: 4,
+                      opacity: 0.7,
+                      dashArray: avgSpeedKmh < 28 ? '5, 8' : undefined
+                    }}
+                  />
+                );
+              })}
+            </LayerGroup>
+          )
         )}
 
         {/* User Current Location Marker */}
@@ -297,12 +356,12 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
           </LayerGroup>
         )}
 
-        {/* Heatmap Overlay Layer */}
+        {/* Heatmap Overlay Layer - Elevated Opacity and Borders for striking visibility */}
         {showHeatmap && (
           <LayerGroup>
             {incidents.map((inc) => {
               const baseRad = radiusAt(inc, forecastMinutesAhead);
-              const opacity = 0.12 + (forecastMinutesAhead / 30) * 0.12;
+              const opacity = 0.28 + (forecastMinutesAhead / 30) * 0.16;
               const color = severityToColor(inc.severity);
               return (
                 <Circle
@@ -312,7 +371,9 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
                   pathOptions={{
                     fillColor: color,
                     fillOpacity: opacity,
-                    color: 'transparent',
+                    color: color,
+                    weight: 1.5,
+                    opacity: 0.4
                   }}
                 />
               );
@@ -382,43 +443,45 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
           </LayerGroup>
         )}
 
-        {/* Traffic Node Markers */}
-        <LayerGroup>
-          {nodes.map((node) => {
-            const isSelected = selectedNodeId === node.id;
-            const color = getNodeColor(node.status);
+        {/* Traffic Node Markers - Toggled by showTraffic state */}
+        {showTraffic && (
+          <LayerGroup>
+            {nodes.map((node) => {
+              const isSelected = selectedNodeId === node.id;
+              const color = getNodeColor(node.status);
 
-            return (
-              <CircleMarker
-                key={node.id}
-                center={[node.lat, node.lng]}
-                radius={isSelected ? 9 : 6.5}
-                pathOptions={{
-                  color: isSelected ? '#FFFFFF' : color,
-                  fillColor: color,
-                  fillOpacity: 0.9,
-                  weight: isSelected ? 2.5 : 1.2,
-                }}
-                eventHandlers={{
-                  click: () => onSelectNode(node.id),
-                }}
-              >
-                <Popup>
-                  <div className="p-1 text-[#1A1A1A] font-sans">
-                    <div className="font-bold text-xs font-serif">{node.name}</div>
-                    <div className="text-[10px] font-mono mt-1 flex justify-between gap-4">
-                      <span>Status: <span className="font-bold uppercase" style={{ color }}>{node.status}</span></span>
-                      <span>Speed: <b>{node.avgSpeedKmh} km/h</b></span>
+              return (
+                <CircleMarker
+                  key={node.id}
+                  center={[node.lat, node.lng]}
+                  radius={isSelected ? 9 : 6.5}
+                  pathOptions={{
+                    color: isSelected ? '#FFFFFF' : color,
+                    fillColor: color,
+                    fillOpacity: 0.9,
+                    weight: isSelected ? 2.5 : 1.2,
+                  }}
+                  eventHandlers={{
+                    click: () => onSelectNode(node.id),
+                  }}
+                >
+                  <Popup>
+                    <div className="p-1 text-[#1A1A1A] font-sans">
+                      <div className="font-bold text-xs font-serif">{node.name}</div>
+                      <div className="text-[10px] font-mono mt-1 flex justify-between gap-4">
+                        <span>Status: <span className="font-bold uppercase" style={{ color }}>{node.status}</span></span>
+                        <span>Speed: <b>{node.avgSpeedKmh} km/h</b></span>
+                      </div>
+                      <div className="text-[9px] font-mono text-gray-500 mt-0.5">
+                        Delay: +{node.delayMinutes} mins
+                      </div>
                     </div>
-                    <div className="text-[9px] font-mono text-gray-500 mt-0.5">
-                      Delay: +{node.delayMinutes} mins
-                    </div>
-                  </div>
-                </Popup>
-              </CircleMarker>
-            );
-          })}
-        </LayerGroup>
+                  </Popup>
+                </CircleMarker>
+              );
+            })}
+          </LayerGroup>
+        )}
 
         {/* Weather Radar Storm Cells & Waterlogging overlays */}
         {showWeather && (

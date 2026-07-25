@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { motion, AnimatePresence } from 'motion/react';
 import { Incident, TrafficNode, CameraFeed, SocialSignal, RouteOption, DispatchLogEntry, RouteAnalysis } from '../types';
 import { InteractiveMap } from './InteractiveMap';
 import { IncidentDispatch } from './IncidentDispatch';
@@ -251,16 +252,41 @@ export const Dashboard: React.FC<DashboardProps> = ({
         {/* Command Center Main Layout Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
           {/* Left Panel: Live Traffic Metrics */}
-          <div className="lg:col-span-3 bg-white border border-[#1A1A1A]/15 p-5 flex flex-col gap-5 shadow-sm">
-            <div>
+          <div className="lg:col-span-3 bg-white/95 backdrop-blur-md border border-[#1A1A1A]/15 p-5 flex flex-col gap-5 shadow-sm relative overflow-hidden">
+            {/* Tech Corner Accents */}
+            <span className="absolute top-1 left-1 text-[#1A1A1A]/20 font-mono text-[8px] pointer-events-none">+</span>
+            <span className="absolute top-1 right-1 text-[#1A1A1A]/20 font-mono text-[8px] pointer-events-none">+</span>
+            <span className="absolute bottom-1 left-1 text-[#1A1A1A]/20 font-mono text-[8px] pointer-events-none">+</span>
+            <span className="absolute bottom-1 right-1 text-[#1A1A1A]/20 font-mono text-[8px] pointer-events-none">+</span>
+
+            <div className="relative group">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold font-mono tracking-widest text-[#D93B2D] uppercase">City Metrics</span>
+                <span className="text-xs font-bold font-mono tracking-widest text-[#D93B2D] uppercase flex items-center gap-1.5">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
+                  </span>
+                  <span>City Metrics</span>
+                </span>
                 <span className="text-[10px] bg-[#1A1A1A] text-white font-mono font-bold px-2 py-0.5 uppercase tracking-wider">
                   LIVE TELEMETRY
                 </span>
               </div>
-              <div className="text-3xl font-serif font-black text-[#1A1A1A] mt-1">{activeCommuters}</div>
-              <div className="text-xs text-[#1A1A1A]/60 font-sans">Active Commuters Monitored</div>
+              <div className="h-10 overflow-hidden flex items-end">
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={activeCommuters}
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 8 }}
+                    transition={{ duration: 0.18 }}
+                    className="text-3xl font-serif font-black text-[#1A1A1A] mt-1"
+                  >
+                    {activeCommuters}
+                  </motion.div>
+                </AnimatePresence>
+              </div>
+              <div className="text-xs text-[#1A1A1A]/60 font-sans mt-0.5">Active Commuters Monitored</div>
             </div>
 
             {/* Congestion Split Progress Bar */}
@@ -279,31 +305,131 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
             {/* Metrics Breakdown Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-              <div className="bg-[#F2F0EB] p-3 border border-[#1A1A1A]/10">
-                <div className="text-[10px] text-[#1A1A1A]/60 font-mono font-bold uppercase tracking-wider">Avg Speed</div>
-                <div className="text-xl font-serif font-bold text-[#1A1A1A] mt-0.5">{avgSpeed} km/h</div>
+              <motion.div
+                whileHover={{ y: -2.5, boxShadow: '0 4px 10px rgba(26,26,26,0.05)' }}
+                transition={{ type: 'spring', stiffness: 350, damping: 22 }}
+                className="bg-[#F2F0EB] p-3 border border-[#1A1A1A]/10 relative overflow-hidden group"
+              >
+                <span className="absolute top-1 left-1 text-[#1A1A1A]/20 text-[6px] pointer-events-none">+</span>
+                <span className="absolute top-1 right-1 text-[#1A1A1A]/20 text-[6px] pointer-events-none">+</span>
+                <div className="text-[10px] text-[#1A1A1A]/60 font-mono font-bold uppercase tracking-wider flex items-center gap-1">
+                  <span className="relative flex h-1.5 w-1.5">
+                    <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${isSpeedBetter ? 'bg-emerald-400' : 'bg-amber-400'} opacity-75`}></span>
+                    <span className={`relative inline-flex rounded-full h-1.5 w-1.5 ${isSpeedBetter ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
+                  </span>
+                  <span>Avg Speed</span>
+                </div>
+                <div className="h-7 overflow-hidden flex items-end">
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={avgSpeed}
+                      initial={{ opacity: 0, y: -6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 6 }}
+                      transition={{ duration: 0.18 }}
+                      className="text-xl font-serif font-bold text-[#1A1A1A]"
+                    >
+                      {avgSpeed} km/h
+                    </motion.div>
+                  </AnimatePresence>
+                </div>
                 <div className={`text-[10px] ${speedDiffColor} font-mono mt-1 font-semibold`}>
                   {speedDiffText}
                 </div>
-              </div>
+              </motion.div>
 
-              <div className="bg-[#F2F0EB] p-3 border border-[#1A1A1A]/10">
-                <div className="text-[10px] text-[#1A1A1A]/60 font-mono font-bold uppercase tracking-wider">Deviation</div>
-                <div className="text-xl font-serif font-bold text-[#D93B2D] mt-0.5">+{deviationPct}%</div>
+              <motion.div
+                whileHover={{ y: -2.5, boxShadow: '0 4px 10px rgba(26,26,26,0.05)' }}
+                transition={{ type: 'spring', stiffness: 350, damping: 22 }}
+                className="bg-[#F2F0EB] p-3 border border-[#1A1A1A]/10 relative overflow-hidden group"
+              >
+                <span className="absolute top-1 left-1 text-[#1A1A1A]/20 text-[6px] pointer-events-none">+</span>
+                <span className="absolute top-1 right-1 text-[#1A1A1A]/20 text-[6px] pointer-events-none">+</span>
+                <div className="text-[10px] text-[#1A1A1A]/60 font-mono font-bold uppercase tracking-wider flex items-center gap-1">
+                  <span className="relative flex h-1.5 w-1.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-500"></span>
+                  </span>
+                  <span>Deviation</span>
+                </div>
+                <div className="h-7 overflow-hidden flex items-end">
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={deviationPct}
+                      initial={{ opacity: 0, y: -6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 6 }}
+                      transition={{ duration: 0.18 }}
+                      className="text-xl font-serif font-bold text-[#D93B2D]"
+                    >
+                      +{deviationPct}%
+                    </motion.div>
+                  </AnimatePresence>
+                </div>
                 <div className="text-[10px] text-[#D93B2D]/80 font-mono mt-1 font-semibold">Peak hour delay</div>
-              </div>
+              </motion.div>
 
-              <div className="bg-[#F2F0EB] p-3 border border-[#1A1A1A]/10">
-                <div className="text-[10px] text-[#1A1A1A]/60 font-mono font-bold uppercase tracking-wider">Incidents</div>
-                <div className="text-xl font-serif font-bold text-[#D93B2D] mt-0.5">{totalIncidents} Active</div>
+              <motion.div
+                whileHover={{ y: -2.5, boxShadow: '0 4px 10px rgba(26,26,26,0.05)' }}
+                transition={{ type: 'spring', stiffness: 350, damping: 22 }}
+                className="bg-[#F2F0EB] p-3 border border-[#1A1A1A]/10 relative overflow-hidden group"
+              >
+                <span className="absolute top-1 left-1 text-[#1A1A1A]/20 text-[6px] pointer-events-none">+</span>
+                <span className="absolute top-1 right-1 text-[#1A1A1A]/20 text-[6px] pointer-events-none">+</span>
+                <div className="text-[10px] text-[#1A1A1A]/60 font-mono font-bold uppercase tracking-wider flex items-center gap-1">
+                  <span className="relative flex h-1.5 w-1.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-amber-500"></span>
+                  </span>
+                  <span>Incidents</span>
+                </div>
+                <div className="h-7 overflow-hidden flex items-end">
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={totalIncidents}
+                      initial={{ opacity: 0, y: -6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 6 }}
+                      transition={{ duration: 0.18 }}
+                      className="text-xl font-serif font-bold text-[#D93B2D]"
+                    >
+                      {totalIncidents} Active
+                    </motion.div>
+                  </AnimatePresence>
+                </div>
                 <div className="text-[10px] text-[#D93B2D]/80 font-mono mt-1 font-semibold">{severeIncidentsCount} High Severity</div>
-              </div>
+              </motion.div>
 
-              <div className="bg-[#F2F0EB] p-3 border border-[#1A1A1A]/10">
-                <div className="text-[10px] text-[#1A1A1A]/60 font-mono font-bold uppercase tracking-wider">AI Confidence</div>
-                <div className="text-xl font-serif font-bold text-[#1A1A1A] mt-0.5">{avgConfidence}%</div>
+              <motion.div
+                whileHover={{ y: -2.5, boxShadow: '0 4px 10px rgba(26,26,26,0.05)' }}
+                transition={{ type: 'spring', stiffness: 350, damping: 22 }}
+                className="bg-[#F2F0EB] p-3 border border-[#1A1A1A]/10 relative overflow-hidden group"
+              >
+                <span className="absolute top-1 left-1 text-[#1A1A1A]/20 text-[6px] pointer-events-none">+</span>
+                <span className="absolute top-1 right-1 text-[#1A1A1A]/20 text-[6px] pointer-events-none">+</span>
+                <div className="text-[10px] text-[#1A1A1A]/60 font-mono font-bold uppercase tracking-wider flex items-center gap-1">
+                  <span className="relative flex h-1.5 w-1.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-violet-500"></span>
+                  </span>
+                  <span>AI Confidence</span>
+                </div>
+                <div className="h-7 overflow-hidden flex items-end">
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={avgConfidence}
+                      initial={{ opacity: 0, y: -6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 6 }}
+                      transition={{ duration: 0.18 }}
+                      className="text-xl font-serif font-bold text-[#1A1A1A]"
+                    >
+                      {avgConfidence}%
+                    </motion.div>
+                  </AnimatePresence>
+                </div>
                 <div className="text-[10px] text-emerald-700 font-mono mt-1 font-semibold">Sensor Reliability</div>
-              </div>
+              </motion.div>
             </div>
 
             {/* Key Corridor Status Widget */}
